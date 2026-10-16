@@ -1,0 +1,9 @@
+CREATE TABLE https_settings (
+ id INTEGER PRIMARY KEY CHECK(id=1),
+ enabled INTEGER NOT NULL DEFAULT 0 CHECK(enabled IN (0,1)),
+ domain TEXT NOT NULL DEFAULT '',
+ email TEXT NOT NULL DEFAULT '',
+ revision INTEGER NOT NULL DEFAULT 0,
+ updated_at TEXT NOT NULL DEFAULT ''
+);
+INSERT INTO https_settings(id) VALUES(1);

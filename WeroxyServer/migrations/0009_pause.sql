@@ -1,0 +1,2 @@
+ALTER TABLE weroxy_devices ADD COLUMN paused INTEGER NOT NULL DEFAULT 0 CHECK (paused IN (0, 1));
+ALTER TABLE legacy_devices ADD COLUMN paused INTEGER NOT NULL DEFAULT 0 CHECK (paused IN (0, 1));

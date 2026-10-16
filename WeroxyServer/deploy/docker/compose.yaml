@@ -1,0 +1,43 @@
+# Review host ports before running this stack.
+# Initialize the same container port pool in /data before startup.
+services:
+  weroxy:
+    image: ${WEROXY_IMAGE:-weroxy-server:0.4.0}
+    build:
+      context: ../..
+      dockerfile: DockerFile
+    command:
+      - run
+      - --data
+      - /data
+      - --drain-timeout
+      - 20s
+      - --legacy-listen
+      - 0.0.0.0:4900
+      - --weroxy-control
+      - 0.0.0.0:29999
+      - --web
+      - 0.0.0.0:9415
+    user: "10001:10001"
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - ./data:/data
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m
+    logging:
+      driver: local
+      options:
+        max-size: "10m"
+        max-file: "5"
+    healthcheck:
+      test: ["CMD", "/weroxy-Server", "health", "--url", "http://127.0.0.1:9415", "--check", "live"]
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
+    stop_grace_period: 60s
+    restart: unless-stopped

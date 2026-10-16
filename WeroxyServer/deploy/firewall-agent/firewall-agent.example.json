@@ -1,0 +1,18 @@
+{
+  "backend": "nft",
+  "client_uid": 1000,
+  "allow_apply": false,
+  "management_port": 9415,
+  "management_sources": ["198.51.100.10"],
+  "endpoints": [
+    {
+      "mode": "bridge",
+      "bridge": "br-weroxy",
+      "host_ip": "203.0.113.1",
+      "listen_host": "0.0.0.0",
+      "destination_ip": "172.20.0.2",
+      "public_port": 29000,
+      "target_port": 29000
+    }
+  ]
+}

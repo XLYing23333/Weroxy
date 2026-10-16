@@ -1,0 +1,23 @@
+[Unit]
+Description=Weroxy client
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=/etc/weroxycli/client.conf
+
+[Service]
+Type=simple
+User=weroxy
+Group=weroxy
+RuntimeDirectory=weroxycli
+RuntimeDirectoryMode=0700
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=true
+PrivateTmp=true
+ExecStart=/usr/bin/weroxy-client run --config /etc/weroxycli/client.conf
+Restart=on-failure
+RestartPreventExitStatus=2 78
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

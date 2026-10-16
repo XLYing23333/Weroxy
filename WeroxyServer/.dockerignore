@@ -1,0 +1,18 @@
+.git
+web/node_modules
+web/dist
+internal/webui/dist
+*.db
+*.sqlite
+*.log
+Release
+RAW
+
+# Deployment data, secrets and host snapshots never enter build layers.
+deploy/docker/data
+deploy/docker/.env
+deploy/docker/.deployment-state.json
+deploy/docker/rollback-data
+**/*.key
+**/*.secret
+deploy/docker/failed-data-*

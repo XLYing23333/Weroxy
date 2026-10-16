@@ -1,0 +1,6 @@
+# The independently installed host agent owns kernel rules.
+# Mount its directory, not the socket inode: restart may recreate the socket.
+services:
+  weroxy:
+    volumes:
+      - /run/weroxy-firewall:/run/weroxy-firewall:ro

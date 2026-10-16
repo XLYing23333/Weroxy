@@ -1,0 +1,20 @@
+[Unit]
+Description=Weroxy Docker publication snapshot refresh
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/weroxy/WeroxyServer/deploy/docker
+ExecStart=/usr/bin/python3 /opt/weroxy/WeroxyServer/deploy/docker/manage.py watch
+Restart=on-failure
+RestartSec=10
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/weroxy/WeroxyServer/deploy/docker
+
+[Install]
+WantedBy=multi-user.target

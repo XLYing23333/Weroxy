@@ -1,0 +1,21 @@
+[Unit]
+Description=Weroxy approved Docker firewall scope refresh
+After=docker.service weroxy-firewall-agent.service
+Requires=docker.service
+Wants=weroxy-firewall-agent.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /usr/local/lib/weroxy/watch-docker.py --scope-args /etc/weroxy/docker-scope.json --enable-apply
+User=root
+Group=root
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/etc/weroxy /var/lib/weroxy-firewall
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

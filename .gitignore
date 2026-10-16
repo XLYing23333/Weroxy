@@ -1,0 +1,113 @@
+# User/workspace artifacts
+RAW/
+Release/
+development
+out/
+dist/
+build/
+tmp/
+temp/
+.cache/
+testdata/
+log/
+*.log
+*.bak
+*.tmp
+*.swp
+*.swo
+*.DS_Store
+ehthumbs.db
+Thumbs.db
+
+# IDE/editor
+.vscode/
+.idea/
+*.iml
+
+# Go
+*.exe
+*.test
+*.out
+*.coverprofile
+# Go module manifests and checksums are source inputs and must be tracked.
+vendor/
+
+# Agent/AI/automation system artifacts
+.agents/
+.claude/
+.cursor/
+AGENTS.md
+.codex/
+.aws
+
+# Node/npm/yarn output (if any frontend work appears)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Misc/Other
+*.sqlite
+*.db
+*.db-journal
+*.sqlite3
+*.sqlite-wal
+*.sqlite-shm
+log/
+*.tar.gz
+*.zip
+*.7z
+*.gz
+
+# OS/backup
+Icon?
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+# End of Selection
+
+# Docker local deployment state and credentials
+WeroxyServer/deploy/docker/data/
+WeroxyServer/deploy/docker/rollback-data/
+WeroxyServer/deploy/docker/.env
+WeroxyServer/deploy/docker/.deployment-state.json
+WeroxyServer/deploy/docker/.deployment.lock
+WeroxyServer/deploy/docker/failed-data-*/
+
+# Python import cache
+__pycache__/
+*.py[cod]
+
+WeroxyServer/deploy/docker/publication.compose.yaml
+WeroxyServer/deploy/docker/data/host-port-plan.json
+WeroxyServer/deploy/docker/https.compose.yaml
+WeroxyServer/deploy/docker/Caddyfile.generated
+WeroxyServer/deploy/docker/.https-settings.json
+
+# Local native build outputs
+/WeroxyClient/weroxy-client
+/WeroxyServer/weroxy-Server
+
+# Private runtime credentials and local environment files
+.env
+.env.*
+!.env.example
+!.env.sample
+*.key
+*.pem
+*.p12
+*.pfx
+id_rsa
+id_ed25519
+client.conf
+*.db-wal
+*.db-shm
+
+# Built-in Web resources are required by go:embed in a fresh checkout.
+!WeroxyServer/internal/webui/dist/
+!WeroxyServer/internal/webui/dist/**
+
+# User-designated local-only documentation and integration tests.
+Docs
+tests

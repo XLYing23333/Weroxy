@@ -1,0 +1,24 @@
+{
+  "name": "weroxy-web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "typecheck": "vue-tsc --noEmit",
+    "prebuild": "node scripts/check-notices.mjs"
+  },
+  "dependencies": {
+    "echarts": "^6.0.0",
+    "element-plus": "^2.11.4",
+    "vue": "^3.5.22",
+    "vue-i18n": "^11.1.12",
+    "vue-router": "^4.5.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^6.0.1",
+    "typescript": "^5.9.2",
+    "vite": "^7.1.7",
+    "vue-tsc": "3.3.11"
+  }
+}
