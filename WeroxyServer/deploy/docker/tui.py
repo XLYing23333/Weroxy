@@ -9,17 +9,16 @@ import unicodedata
 
 import console
 
-ACTIONS = [*console.ACTIONS, 'quit']
-LABELS = ['Install', 'Start', 'Stop', 'Restart', 'Status', 'Reset password', 'Uninstall', 'Third-party notices', 'Exit']
+ACTIONS = [action for action in console.ACTIONS if action != 'notices'] + ['quit']
+LABELS = ['Install', 'Start', 'Stop', 'Restart', 'Status', 'Reset password', 'Uninstall', 'Exit']
 DESCRIPTIONS = [
-    'Verify the release, prepare data and start Docker. Create the account in Web.',
+    'Verify the release, prepare data and start the container. Create the account in Web.',
     'Check the release and ports, then start the existing deployment.',
-    'Stop Docker and pause this deployment\'s background tasks. Keep data.',
+    'Stop the container and pause this deployment\'s background tasks. Keep data.',
     'Stop and start the existing deployment. Connections will reconnect.',
     'Show the container, Web address and available ports.',
     'Set a new administrator password. Account name stays unchanged.',
     'Remove this deployment\'s containers and tasks. Keep its database and backups.',
-    'Read the third-party software notices included in this release.',
     'Close the manager. Running services remain running.',
 ]
 
@@ -206,8 +205,6 @@ class OperationOutput(io.StringIO):
 def operation(screen, action, args, lang='en'):
     title = LABELS[ACTIONS.index(action)]
     output = OperationOutput()
-    if action == 'notices':
-        output.LIMIT = 2 * 1024 * 1024
     output.write('Starting...\n')
     outcome = ['Completed']
     original_command = console.core.command

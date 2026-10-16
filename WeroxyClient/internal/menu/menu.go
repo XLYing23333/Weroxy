@@ -18,8 +18,6 @@ import (
 	"strings"
 	"time"
 
-	notices "weroxy/client"
-
 	"weroxy/client/internal/config"
 	"weroxy/client/internal/status"
 )
@@ -69,7 +67,7 @@ func UnitText(binary, path string) string {
 	return "[Unit]\nDescription=Weroxy client\nAfter=network-online.target\nWants=network-online.target\n[Service]\nType=simple\nUser=weroxy\nGroup=weroxy\nRuntimeDirectory=weroxycli\nRuntimeDirectoryMode=0700\nNoNewPrivileges=true\nProtectSystem=strict\nProtectHome=true\nPrivateTmp=true\nExecStart=" + strconv.Quote(binary) + " run --config " + strconv.Quote(path) + "\nRestart=on-failure\nRestartSec=5\n[Install]\nWantedBy=multi-user.target\n"
 }
 
-var entries = []string{"profile", "start/restart", "stop", "status", "systemctl", "doctor", "SSH 与 fail2ban", "uninstall", "第三方声明 / Notices"}
+var entries = []string{"profile", "start/restart", "stop", "status", "开机自启", "doctor", "主机加固", "uninstall"}
 
 func Run(ctx context.Context, opt Option) int {
 	if opt.Stdin == nil {
@@ -129,15 +127,9 @@ func Run(ctx context.Context, opt Option) int {
 				continue
 			}
 			action := options[selected]
-			if action == "systemctl" {
+			if action == "开机自启" {
 				submenu = true
 				selected = 0
-				continue
-			}
-			if action == "第三方声明 / Notices" {
-				if showNotices(ctx, term, opt.Stdout) != nil {
-					return 1
-				}
 				continue
 			}
 			if action == "profile" {
@@ -156,10 +148,10 @@ func Run(ctx context.Context, opt Option) int {
 			if err = term.Pause(); err != nil {
 				return 1
 			}
-			if action == "SSH 与 fail2ban" {
+			if action == "主机加固" {
 				if opt.Action != nil {
 					reader := bufio.NewReader(opt.Stdin)
-					fmt.Fprintln(opt.Stdout, "1 风险检测  2 SSH 加固  3 fail2ban 安装/配置  4 dry-run  5 回滚")
+					fmt.Fprintln(opt.Stdout, "1 风险检测  2 SSH 加固  3 登录防护安装/配置  4 dry-run  5 回滚")
 					choice, _ := reader.ReadString('\n')
 					choice = strings.TrimSpace(choice)
 					values := []string{"status"}
@@ -364,7 +356,7 @@ func statusLines(ctx context.Context, opt Option) []string {
 			}
 		}
 	}
-	lines := []string{"系统：" + system + " / " + runtime.GOARCH, "服务：" + active, "开机自启：" + enabled, "传输模式：Noise 控制与握手保护；业务流沿用原协议"}
+	lines := []string{"系统：" + system + " / " + runtime.GOARCH, "服务：" + active, "开机自启：" + enabled, "传输模式：控制与握手已保护；业务流沿用原协议"}
 	snap, ok := status.Read(status.Path(ServiceConfigPath))
 	if !ok && os.Geteuid() != 0 {
 		child, cancel := context.WithTimeout(ctx, 2*time.Second)
@@ -641,45 +633,6 @@ func (realSystem) Uninstall(ctx context.Context, path string) error {
 		return privileged(ctx, nil, "rpm", "-e", "weroxy-client")
 	case "pacman":
 		return privileged(ctx, nil, "pacman", "-R", "--noconfirm", "weroxy-client")
-	}
-	return nil
-}
-
-// showNotices pages the entire embedded text, including on narrow terminals.
-func showNotices(ctx context.Context, term Terminal, out io.Writer) error {
-	rows, cols := term.Size()
-	width, page := max(1, cols-2), max(1, rows-4)
-	var lines []string
-	for _, line := range strings.Split(notices.Text(), "\n") {
-		chars := []rune(line)
-		for len(chars) > width {
-			lines = append(lines, string(chars[:width]))
-			chars = chars[width:]
-		}
-		lines = append(lines, string(chars))
-	}
-	for first := 0; first < len(lines); first += page {
-		if err := term.Pause(); err != nil {
-			return err
-		}
-		fmt.Fprint(out, "\x1b[H\x1b[2J")
-		fmt.Fprintln(out, strings.Join(lines[first:min(first+page, len(lines))], "\n"))
-		fmt.Fprintln(out, "Enter: 下一页 / 返回 · Esc: 返回")
-		if err := term.Resume(); err != nil {
-			return err
-		}
-		for {
-			key, err := term.Key(ctx)
-			if err != nil {
-				return err
-			}
-			if key == "esc" || key == "q" {
-				return nil
-			}
-			if key == "enter" {
-				break
-			}
-		}
 	}
 	return nil
 }

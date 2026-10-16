@@ -99,7 +99,6 @@ def main():
                     with p.open('rb') as stream:
                         archive.addfile(info,stream)
     shutil.copyfile(ROOT/'INSTALL_AGENT.md',output/'INSTALL_AGENT.md')
-    shutil.copyfile(ROOT/'THIRD_PARTY_NOTICES',output/'THIRD_PARTY_NOTICES')
     (output/'SHA256SUMS').write_text(''.join(sha(p)+'  '+p.name+'\n' for p in sorted(output.iterdir()) if p.is_file()))
     print('Built release assets from '+commit+' in '+str(output))
 

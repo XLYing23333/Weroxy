@@ -54,7 +54,7 @@ Open `weroxy-client` in an interactive terminal and configure only Host, Port an
 Key through profile. Default Control port is 29999. For automation use the existing
 stdin-based configuration interface; never put Key in argv or a Git-tracked file.
 Targets/forwards are configured in Server Web. Start via start/restart; confirm
-`weroxy-client version`, status and doctor. SSH/fail2ban changes and systemctl
+`weroxy-client version`, status and doctor. SSH/fail2ban changes in the 主机加固 menu and 开机自启 →
 Enable are separate choices, not required for basic tunnel installation.
 
 ## Verification and reporting / 验证与报告

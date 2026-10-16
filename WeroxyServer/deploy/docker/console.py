@@ -171,19 +171,19 @@ def prerequisites(network=True):
         raise RuntimeError('Python 3.10+ required / 需要 Python 3.10 或以上')
     for name in ('docker', 'systemctl', 'ss'):
         if not shutil.which(name):
-            raise RuntimeError('Install missing dependency / 请先安装缺失组件: ' + name)
+            raise RuntimeError('Missing host capability; see README / 缺少主机组件，请参阅 README: ' + {'docker': 'container runtime', 'systemctl': 'service manager', 'ss': 'port inspection'}[name])
     try:
         core.command(['docker', 'info'], capture=True, timeout=20)
     except subprocess.SubprocessError:
-        raise RuntimeError('Docker daemon unavailable; check sudo systemctl status docker / Docker 未运行或不可访问，请检查 sudo systemctl status docker') from None
+        raise RuntimeError('Container runtime unavailable; see README / 容器运行环境不可用，请参阅 README') from None
     try:
         core.command(['docker', 'compose', 'version'], capture=True, timeout=10)
     except subprocess.SubprocessError:
-        raise RuntimeError('Install the Docker Compose v2 plugin / 请先安装 Docker Compose v2 插件') from None
+        raise RuntimeError('Install the required container orchestration plugin; see README / 请参阅 README 安装容器编排组件') from None
     try:
         core.command(['systemctl', 'show', '--property=Version'], capture=True, timeout=10)
     except subprocess.SubprocessError:
-        raise RuntimeError('A running systemd host is required / 需要实际运行 systemd 的宿主机') from None
+        raise RuntimeError('A running system service manager is required / 需要运行系统服务管理器的宿主机') from None
     if network:
         core.port_plan.check_firewall()
     # Automatic host integration must not be writable by the Server user.
@@ -229,7 +229,7 @@ def archive_identity(package, build):
 
 def load_image(package, build):
     reference, config = archive_identity(package, build)
-    print('Import Docker image', flush=True)
+    print('Import container image', flush=True)
     core.command(['docker', 'load', '-i', str(package / build['image_archive'])], capture=True, timeout=600)
     info = json.loads(core.command(['docker', 'image', 'inspect', reference], capture=True))[0]
     # Classic graphdriver uses config IDs; containerd uses manifest IDs. Both
@@ -441,8 +441,6 @@ def execute(action, args):
     if action == 'notices':
         with ordinary_file(PACKAGE, 'THIRD_PARTY_NOTICES').open(encoding='utf-8', newline='') as stream:
             text = stream.read()
-        if len(text) > 2 * 1024 * 1024 - 1024:
-            raise RuntimeError('Notices exceed the menu display budget; read THIRD_PARTY_NOTICES directly')
         print(text, end='')
         return
     if action == 'status':

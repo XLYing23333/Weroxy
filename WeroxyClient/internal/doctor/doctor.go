@@ -55,7 +55,7 @@ func Run(parent context.Context, cfg config.Config) Report {
 	}
 	conn, err := dial(cfg.Server)
 	if err != nil {
-		add("control_port", "fail", "控制端口连接失败；请检查 Host、Control Port、Docker 发布及防火墙")
+		add("control_port", "fail", "控制端口连接失败；请检查 Host、Control Port、容器端口发布及防火墙")
 		return report
 	}
 	defer conn.Close()

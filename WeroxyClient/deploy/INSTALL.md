@@ -25,7 +25,7 @@ systemctl
     enable
     disable
 doctor
-SSH 与 fail2ban
+主机加固
 uninstall
 ```
 
@@ -75,9 +75,9 @@ GO_BIN=/path/to/go WeroxyClient/deploy/package.sh 0.4.0
 
 打包工具使用隔离 Docker 容器，运行时无需 Docker。输出为 `dist/client/0.4.0/` 的 deb、RPM、pacman 包、构建基准、源码与发布 SHA-256 清单。架构支持不等于每个系统组合已经实测。
 
-## 可选：SSH 与 fail2ban
+## 可选：主机加固
 
-TUI 新增“SSH 与 fail2ban”；参数 Enter 使用默认值。也可运行 `weroxy-client harden status --json`、`harden ssh --dry-run`、`harden fail2ban --dry-run`。只有显式确认的 Debian 12 主机配置操作才调用 sudo。默认保留 SSH 登录方式，不修改 UFW；应用后需要第二 SSH 会话确认，否则五分钟自动回滚。详见 `Docs/operations/client-ssh-hardening.md`。该功能不影响穿透的运行时依赖。
+TUI 新增“主机加固”；参数 Enter 使用默认值。也可运行 `weroxy-client harden status --json`、`harden ssh --dry-run`、`harden fail2ban --dry-run`。只有显式确认的 Debian 12 主机配置操作才调用 sudo。默认保留 SSH 登录方式，不修改 UFW；应用后需要第二 SSH 会话确认，否则五分钟自动回滚。详见 `Docs/operations/client-ssh-hardening.md`。该功能不影响穿透的运行时依赖。
 
 ## 0.4.0 传输升级
 

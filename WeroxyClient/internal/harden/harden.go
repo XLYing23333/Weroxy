@@ -76,7 +76,7 @@ func Inspect(ctx context.Context) []Check {
 	m, e := settings(ctx)
 	out := []Check{}
 	if e != nil {
-		out = append(out, Check{"sshd", "skip", "无法检测：需要足够权限及 OpenSSH"})
+		out = append(out, Check{"sshd", "skip", "无法检测：需要足够权限及可用的 SSH 服务"})
 	} else {
 		for _, k := range []string{"permitrootlogin", "passwordauthentication", "kbdinteractiveauthentication", "persourcemaxstartups", "logingracetime"} {
 			value, ok := m[k]
@@ -98,9 +98,9 @@ func Inspect(ctx context.Context) []Check {
 	if _, e = command(ctx, "systemctl", "is-active", "--quiet", "fail2ban"); e != nil {
 		out = append(out, Check{"fail2ban", "warn", "未运行或无法检测"})
 	} else if _, e = command(ctx, "fail2ban-client", "status", "sshd"); e != nil {
-		out = append(out, Check{"fail2ban", "warn", "服务运行但 sshd jail 无法确认"})
+		out = append(out, Check{"fail2ban", "warn", "服务运行但登录防护规则无法确认"})
 	} else {
-		out = append(out, Check{"fail2ban", "pass", "sshd jail 运行"})
+		out = append(out, Check{"fail2ban", "pass", "登录防护规则运行"})
 	}
 	port := m["port"]
 	if port == "" {
@@ -135,10 +135,10 @@ func Inspect(ctx context.Context) []Check {
 		if found {
 			out = append(out, Check{"firewall", "info", "发现所选端口限速规则，未验证实际防护"})
 		} else {
-			out = append(out, Check{"firewall", "warn", "未发现所选端口 UFW 限速规则；仅检测，不自动修改"})
+			out = append(out, Check{"firewall", "warn", "未发现所选端口的防火墙限速规则；仅检测，不自动修改"})
 		}
 	} else {
-		out = append(out, Check{"firewall", "skip", "UFW 不可用或权限不足；不自动修改防火墙"})
+		out = append(out, Check{"firewall", "skip", "防火墙管理不可用或权限不足；不自动修改防火墙"})
 	}
 	return out
 }
@@ -215,7 +215,7 @@ func collect(r *bufio.Reader, w io.Writer, kind string, m map[string]string, ip 
 		}
 		p.Files[sshFile] = text
 	}
-	install, e := prompt(r, w, "安装并配置 fail2ban？Y/n", "Y")
+	install, e := prompt(r, w, "安装并配置登录防护组件？Y/n", "Y")
 	if e != nil {
 		return p, e
 	}
@@ -522,7 +522,7 @@ func apply(ctx context.Context, p Plan, m map[string]string, w io.Writer) (err e
 				cmd.Stdout = w
 				cmd.Stderr = w
 				if e = cmd.Run(); e != nil {
-					return errors.New("fail2ban 包索引更新或安装失败")
+					return errors.New("登录防护组件索引更新或安装失败")
 				}
 			}
 		}
@@ -571,7 +571,7 @@ func apply(ctx context.Context, p Plan, m map[string]string, w io.Writer) (err e
 			select {
 			case <-ready.Done():
 				cancel()
-				return errors.New("fail2ban jail 未在预算内就绪")
+				return errors.New("登录防护规则未在预算内就绪")
 			case <-time.After(200 * time.Millisecond):
 			}
 		}
@@ -584,7 +584,7 @@ func apply(ctx context.Context, p Plan, m map[string]string, w io.Writer) (err e
 		for key, value := range expected {
 			actual, e := command(ctx, "fail2ban-client", "get", "sshd", key)
 			if e != nil || strings.TrimSpace(actual) != value {
-				return errors.New("fail2ban 参数未实际生效")
+				return errors.New("登录防护参数未实际生效")
 			}
 		}
 	}
@@ -613,7 +613,7 @@ func Run(args []string, in io.Reader, out io.Writer) int {
 			_ = json.NewEncoder(out).Encode(checks)
 		} else {
 			for _, c := range checks {
-				fmt.Fprintf(out, "%s: %s — %s\n", c.Name, c.Status, c.Detail)
+				fmt.Fprintf(out, "%s: %s — %s\n", c.Label(), c.Status, c.Detail)
 			}
 		}
 		return 0
@@ -693,7 +693,7 @@ func Run(args []string, in io.Reader, out io.Writer) int {
 	}
 	m, e := settings(ctx)
 	if e != nil && !dry {
-		fmt.Fprintln(out, "无法验证 sshd 配置")
+		fmt.Fprintln(out, "无法验证 SSH 服务配置")
 		return 1
 	}
 	if text, err := command(ctx, "fail2ban-client", "get", "sshd", "ignoreip"); err == nil {
@@ -717,7 +717,7 @@ func Run(args []string, in io.Reader, out io.Writer) int {
 	for path, text := range p.Files {
 		fmt.Fprintf(out, "\n%s\n%s", path, text)
 	}
-	fmt.Fprintln(out, "不会修改 UFW。fail2ban 不会识别隧道背后的原始公网来源。")
+	fmt.Fprintln(out, "不会修改主机防火墙配置。登录防护不会识别隧道背后的原始公网来源。")
 	if dry {
 		fmt.Fprintln(out, "dry-run：未应用任何变更")
 		return 0
@@ -787,4 +787,17 @@ func latestOperation() (string, error) {
 		return "", errors.New("没有可回滚的操作")
 	}
 	return items[0].id, nil
+}
+
+// Label presents a functional name while retaining stable diagnostic JSON keys.
+func (c Check) Label() string {
+	switch c.Name {
+	case "fail2ban":
+		return "登录防护"
+	case "sshd":
+		return "SSH 服务"
+	case "sshd_listener":
+		return "SSH 监听"
+	}
+	return c.Name
 }

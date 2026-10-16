@@ -78,9 +78,9 @@ def check_firewall():
     if not any(token in info for token in ('ID=debian','ID=ubuntu','ID_LIKE=debian')):
         raise RuntimeError("automatic firewall requires a Debian-family host")
     if not pathlib.Path("/usr/sbin/ufw").exists():
-        raise RuntimeError("UFW is required for automatic firewall rules")
+        raise RuntimeError("The configured firewall manager is required; see README")
     status=subprocess.run(["ufw","status"],check=True,capture_output=True,text=True,env={**os.environ,"LC_ALL":"C"}).stdout
-    if "Status: active" not in status:raise RuntimeError("UFW must be active before starting Weroxy")
+    if "Status: active" not in status:raise RuntimeError("The host firewall must be active before starting Weroxy")
 
 
 def open_firewall(value):
@@ -93,7 +93,7 @@ def open_firewall(value):
             if "Rule added" in result.stdout:added.append(rule)
         status=subprocess.run(["ufw","status"],check=True,capture_output=True,text=True,env={**os.environ,"LC_ALL":"C"}).stdout
         for rule in rules:
-            if f"{rule}/tcp" not in status:raise RuntimeError(f"UFW rule verification failed: {rule}")
+            if f"{rule}/tcp" not in status:raise RuntimeError(f"Firewall rule verification failed: {rule}")
     except Exception:
         for rule in reversed(added):
             subprocess.run(["ufw","--force","delete","allow",f"{rule}/tcp"],capture_output=True)
@@ -109,7 +109,7 @@ def verify_ingress(value, data_dir):
     host = value["host_ip"]
     for outside, inside in value["ports"]:
         if (outside, inside, host) not in published:
-            raise RuntimeError(f"Docker ingress mapping missing for TCP {outside}")
+            raise RuntimeError(f"Container ingress mapping missing for TCP {outside}")
     active = {outside for outside, inside in value["ports"] if inside in (4900, 29999, 9415)}
     with sqlite3.connect(f"file:{data_dir / 'weroxy.db'}?mode=ro", uri=True, timeout=5) as db:
         for table in ("legacy_forwards", "weroxy_forwards"):
@@ -125,7 +125,7 @@ def verify_ingress(value, data_dir):
             with socket.create_connection((dial_host, port), timeout=2):
                 pass
         except OSError as error:
-            raise RuntimeError(f"Docker ingress TCP {port} did not accept a host connection") from error
+            raise RuntimeError(f"Container ingress TCP {port} did not accept a host connection") from error
 
 
 def close_firewall(rules):

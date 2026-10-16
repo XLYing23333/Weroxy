@@ -185,16 +185,15 @@ profile
 start/restart
 stop
 status
-systemctl → enable / disable
+开机自启 → enable / disable
 doctor
-SSH 与 fail2ban
+主机加固
 uninstall
-第三方声明 / Notices
 ```
 
 在 **profile** 填写 Host、Port、Key，全部明文输入。Port 默认 **29999（Control 端口）**，直接 Enter 即可；已有配置留空保留，Esc 取消不保存。内网目标与封禁在 Server Web 配置，无需证书或本地 allow。
 
-Profile 位于 `~/.config/weroxy_client/client.conf`，目录 0700、配置与密钥 0600；sudo 打开菜单仍使用调用用户的配置。保存后选择 **start/restart**，自动同步服务配置并启动或重启。安装及保存配置都不会自动启用开机自启；**systemctl → enable / disable** 只切换自启。**status** 显示系统、服务、自启、控制连接及流量；**doctor** 检查连接。
+Profile 位于 `~/.config/weroxy_client/client.conf`，目录 0700、配置与密钥 0600；sudo 打开菜单仍使用调用用户的配置。保存后选择 **start/restart**，自动同步服务配置并启动或重启。安装及保存配置都不会自动启用开机自启；**开机自启 → enable / disable** 只切换自启。**status** 显示系统、服务、自启、控制连接及流量；**doctor** 检查连接。
 
 TUI **uninstall** 会停止、取消自启、删除当前用户与服务 Profile，再卸载软件，保留其他用户配置。直接通过包管理器卸载则保留配置。更多说明见 [Client 安装指南](WeroxyClient/deploy/INSTALL.md)。
 
@@ -216,7 +215,7 @@ Server 与 Client 分别在各自模块运行 `go test ./...`；Web 运行 `npm 
 - Control 全程使用 Noise，Data 仅在绑定握手阶段加密。READY 后不再增加业务加密层；SSH 沿用自身加密及主机密钥验证。
 - 配置仍为 Host、Port、Key，不需要 TLS、证书或额外客户端。Server 与 Client 必须成对升级，旧 Weroxy 明文协议不会自动降级接入。
 - Web 仍为 HTTP，普通明文业务不会因此获得加密。密码哈希和数据库密钥加密不代替网络传输保护。
-- TUI 的 **SSH 与 fail2ban** 提供只读检测、安装配置、dry-run 和回滚入口，显示默认参数并允许 Enter 接受。仅 Linux Debian 12/systemd 的写入流程经过隔离验收；实际写入前须明确确认，SSH 配置须通过第二会话确认，未确认时定时回滚。
+- TUI 的 **主机加固** 提供只读检测、安装配置、dry-run 和回滚入口，显示默认参数并允许 Enter 接受。登录防护由 fail2ban 实现，系统服务由 systemd 管理。仅 Linux Debian 12/systemd 的写入流程经过隔离验收；实际写入前须明确确认，SSH 配置须通过第二会话确认，未确认时定时回滚。
 - 设备访客显示累计连接与当前活动连接数；累计统计独立于近期明细并在正常重启后恢复。异常退出可能丢失最近未持久化的数据，不保证崩溃时零损失。
 
 ## 凭据与源码发布
@@ -250,14 +249,18 @@ Legacy 与 Weroxy 协议入口分离，不将动态数据端口协议用于旧 C
   <a href="README.md">English</a> · <a href="#项目特性">返回顶部</a>
 </p>
 
+## 第三方许可
+
 第三方声明已嵌入两端可执行文件，可离线执行 `weroxy-client notices` 或 `weroxy-Server notices`
 （Docker：`docker exec <容器名> /weroxy-Server notices`）查看。
-Client 菜单、Server 设置页和 Server 安装管理器（`./manage notices`）也提供查看入口。
+Web 和 TUI 使用功能名称，不展示依赖工具品牌或声明入口；需要时可显式执行 `./manage notices` 查看。
 Client 原生安装包将声明安装到 `/usr/share/doc/weroxy-client/THIRD_PARTY_NOTICES`；
 Server 发布包随安装器附带声明，镜像中位于 `/THIRD_PARTY_NOTICES`。
 
 声明清单覆盖全部已声明的直接/间接 Go 模块，以及 Web npm 锁文件中的所有包（含构建工具、平台可选包），
-各 APP 按自身依赖范围嵌入。详见[依赖清单及上游文本缺项](legal/README.md)。
+各 APP 按自身依赖范围嵌入。实现依赖包括 Noise、SQLite、Vue、Element Plus、ECharts；主机助手使用 fail2ban，部署管理使用 Docker/Compose。
+BSD/MIT 的再分发条款及 Apache 声明要求分发时保留相应版权和许可文本，因此只删除根目录重复汇总文件；
+必要原文仍随 [Server](WeroxyServer/THIRD_PARTY_NOTICES) 和 [Client](WeroxyClient/THIRD_PARTY_NOTICES) 分发。详见[依赖清单及上游文本缺项](legal/README.md)。
 可执行 `python3 scripts/third_party_notices.py --check` 离线检查；依赖变更导致声明过期时，构建/打包会拒绝继续。
 
 

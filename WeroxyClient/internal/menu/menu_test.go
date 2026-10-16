@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-	notices "weroxy/client"
 	"weroxy/client/internal/config"
 )
 
@@ -171,23 +170,5 @@ func TestProfileRepairsCorruptFile(t *testing.T) {
 	backups, _ := filepath.Glob(p + ".repair-*.bak")
 	if len(backups) != 1 {
 		t.Fatal("missing repair backup")
-	}
-}
-
-func TestNoticesAllPages(t *testing.T) {
-	term := &fakeTerminal{}
-	// Extra keys are harmless: this directly exercises the viewer, not menu actions.
-	for range len(notices.Text()) {
-		term.keys = append(term.keys, "enter")
-	}
-	var out bytes.Buffer
-	if err := showNotices(t.Context(), term, &out); err != nil {
-		t.Fatal(err)
-	}
-	text := strings.ReplaceAll(out.String(), "\x1b[H\x1b[2J", "")
-	text = strings.ReplaceAll(text, "Enter: 下一页 / 返回 · Esc: 返回", "")
-	compact := func(s string) string { return strings.Join(strings.Fields(s), "") }
-	if compact(text) != compact(notices.Text()) {
-		t.Fatal("paged notices lost content")
 	}
 }

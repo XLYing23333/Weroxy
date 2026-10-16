@@ -28,7 +28,7 @@ docker run --rm --user "$(id -u):$(id -g)" --workdir /work -v "$work_dir:/work" 
 python3 - "$repo_dir" "$out_dir" "$version" "$go_bin" <<'METADATA'
 import sys,pathlib,subprocess,hashlib,json,datetime
 repo=pathlib.Path(sys.argv[1]); out=pathlib.Path(sys.argv[2]); version=sys.argv[3]
-paths=subprocess.check_output(['git','-C',str(repo),'ls-files','--cached','--others','--exclude-standard','WeroxyClient','LICENSE','THIRD_PARTY_NOTICES'],text=True).splitlines()
+paths=subprocess.check_output(['git','-C',str(repo),'ls-files','--cached','--others','--exclude-standard','WeroxyClient','LICENSE'],text=True).splitlines()
 rows=[]
 for name in sorted(set(paths)):
  p=repo/name

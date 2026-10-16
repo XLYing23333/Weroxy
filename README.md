@@ -183,16 +183,15 @@ profile
 start/restart
 stop
 status
-systemctl → enable / disable
+开机自启 → enable / disable
 doctor
-SSH 与 fail2ban
+主机加固
 uninstall
-第三方声明 / Notices
 ```
 
 **profile** asks only for Host, Port and Key, with visible input. Port defaults to **29999 (Control)**; press Enter to accept. Blank input keeps existing values; Esc cancels without saving. Configure internal targets and bans in Server Web; no certificate or local allow list is required.
 
-Profiles use `~/.config/weroxy_client/client.conf` (directory 0700, configuration/key 0600). Running the menu through sudo uses the invoking user's profile. After saving, **start/restart** synchronizes it with the service and starts or restarts the Client. Installation and saving do not enable autostart. **systemctl → enable / disable** changes only autostart. **status** shows system, service, boot state, actual control connection and traffic; **doctor** diagnoses connectivity.
+Profiles use `~/.config/weroxy_client/client.conf` (directory 0700, configuration/key 0600). Running the menu through sudo uses the invoking user's profile. After saving, **start/restart** synchronizes it with the service and starts or restarts the Client. Installation and saving do not enable autostart. **开机自启 → enable / disable** changes only autostart. **status** shows system, service, boot state, actual control connection and traffic; **doctor** diagnoses connectivity.
 
 TUI **uninstall** stops the service, disables autostart, deletes the current user's and service profiles, then removes the native package; other users' profiles remain. Direct package removal retains configuration. See the [Client guide](WeroxyClient/deploy/INSTALL.md).
 
@@ -212,7 +211,7 @@ Run `go test ./...` separately in Server and Client. In `WeroxyServer/web`, run 
 - Noise protects the full Control connection and the Data binding handshake. After READY, business bytes retain their original protocol; SSH retains its own encryption and host-key verification.
 - Configuration remains Host, Port and Key. No TLS, certificates or additional client is required. Upgrade both components together; there is no fallback to the old plaintext Weroxy protocol.
 - Web remains HTTP. Plaintext business protocols remain plaintext. Password hashing and encrypted credentials at rest do not protect network traffic.
-- The TUI **SSH 与 fail2ban** entry provides inspection, installation/configuration, dry-run and rollback, with displayed defaults accepted by Enter. Write operations were verified in isolated Debian 12/systemd. Writes require explicit confirmation; SSH changes require a second session to confirm, with timed rollback otherwise.
+- The TUI **主机加固** entry provides inspection, installation/configuration, dry-run and rollback, with displayed defaults accepted by Enter. The optional login protection is implemented with fail2ban; the service manager is systemd. Write operations were verified in isolated Debian 12/systemd. Writes require explicit confirmation; SSH changes require a second session to confirm, with timed rollback otherwise.
 - Visitor totals and active connections are separate. Cumulative totals survive normal restarts independently of recent-detail retention. An abnormal exit may lose the latest unpersisted updates.
 
 ## Credentials and source publication
@@ -246,14 +245,20 @@ Thank you to these open-source projects and their contributors:
   <a href="README-CN.md">简体中文</a> · <a href="#features">Back to top</a>
 </p>
 
+## Third-party licenses
+
 Third-party notices are embedded in both executables and can be read offline with
 `weroxy-client notices` or `weroxy-Server notices` (Docker: `docker exec <container> /weroxy-Server notices`).
-They are also available in the Client menu, Server Settings, and the Server installer (`./manage notices`).
+The normal Web and terminal menus use functional labels and do not display library/tool branding.
+The explicit installer CLI `./manage notices` also prints the distribution notices.
 Native Client packages install the text under `/usr/share/doc/weroxy-client/THIRD_PARTY_NOTICES`;
 Server releases include the text alongside the installer and at `/THIRD_PARTY_NOTICES` in the image.
 
 The notice inventory covers all declared direct/indirect Go modules and every Web npm lock entry,
 including build tools and optional platform packages. Each app embeds its own dependency scope.
+Dependencies include Noise, SQLite, Vue, Element Plus and ECharts. The host helper uses fail2ban and the deployment manager uses Docker/Compose.
+BSD/MIT redistribution terms and Apache notices require retaining upstream copyright/license texts in distributed software.
+The redundant combined root notice is omitted; required scoped texts remain in [Server](WeroxyServer/THIRD_PARTY_NOTICES) and [Client](WeroxyClient/THIRD_PARTY_NOTICES).
 See [inventory and upstream text gaps](legal/README.md). Check it offline with
 `python3 scripts/third_party_notices.py --check`; builds/packages reject stale dependency inventories.
 

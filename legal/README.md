@@ -6,7 +6,6 @@ runtime code and is not required on installed hosts.
 
 The generated outputs are:
 
-- `THIRD_PARTY_NOTICES`: combined repository inventory.
 - `WeroxyServer/THIRD_PARTY_NOTICES`: all 13 declared Go modules, Go runtime and
   standard-library vendor notices, and all 126 npm lock entries. This includes
   build tools and optional platform artifacts; listing them does not mean they
@@ -16,7 +15,11 @@ The generated outputs are:
 
 Both modules embed their own output. Native Client packages install the Client
 output in their documentation; Server images and release archives include the
-Server output. CLI, TUI and Web viewing entries use these same texts.
+Server output. Only explicit CLI notice commands print these texts; the normal Web/TUI flows
+have no legal-document menu entry. The redundant combined root document and
+standalone Release attachment are omitted; README links to these required scoped
+texts. Full upstream copyright/conditions/disclaimers remain with each distribution,
+including ECharts NOTICE, rather than being replaced by links alone.
 
 Check offline from the repository root:
 

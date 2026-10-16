@@ -168,7 +168,6 @@ onUnmounted(() => {passwordRequest?.abort();current.value="";next.value="";again
     <div class="settings-col">
       <section class="form-block">
         <h3>{{ t("settings") }}</h3>
-        <p><a href="/THIRD_PARTY_NOTICES" target="_blank" rel="noopener noreferrer">{{ t("thirdPartyNotices") }}</a></p>
         <div class="option-row"><span>{{ t("language") }}</span><el-radio-group v-model="settings.locale" @change="saveAppearance"><el-radio-button value="zh">中文</el-radio-button><el-radio-button value="en">English</el-radio-button></el-radio-group></div>
         <div class="option-row"><span>{{ t("theme") }}</span><el-radio-group v-model="settings.theme" @change="saveAppearance"><el-radio-button value="system">{{ t("system") }}</el-radio-button><el-radio-button value="light">{{ t("light") }}</el-radio-button><el-radio-button value="dark">{{ t("dark") }}</el-radio-button></el-radio-group></div>
       </section>

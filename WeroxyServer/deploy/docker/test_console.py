@@ -49,7 +49,7 @@ class ReleaseTest(unittest.TestCase):
         (self.path/'SHA256SUMS').write_text(''.join(console.checksum(p)+'  '+p.relative_to(self.path).as_posix()+'\n' for p in files))
 
     def test_notices_without_installation(self):
-        canonical = pathlib.Path(__file__).resolve().parents[3] / 'THIRD_PARTY_NOTICES'
+        canonical = pathlib.Path(__file__).resolve().parents[2] / 'THIRD_PARTY_NOTICES'
         text = canonical.read_bytes().decode('utf-8')
         (self.path/'THIRD_PARTY_NOTICES').write_bytes(text.encode('utf-8'))
         output = io.StringIO()
@@ -57,7 +57,7 @@ class ReleaseTest(unittest.TestCase):
             console.execute('notices', argparse.Namespace())
         self.assertEqual(output.getvalue(), text)
         command.assert_not_called()
-        self.assertTrue(tui.available('notices', {'installed':False}))
+        self.assertNotIn('notices', tui.ACTIONS)
         self.assertEqual(len(tui.ACTIONS),len(tui.LABELS))
         self.assertEqual(len(tui.ACTIONS),len(tui.DESCRIPTIONS))
 

@@ -310,7 +310,7 @@ func runDoctor(args []string) int {
 		_ = json.NewEncoder(os.Stdout).Encode(report)
 	} else {
 		for _, check := range report.Hardening {
-			fmt.Fprintf(os.Stdout, "%s: %s — %s\n", check.Name, check.Status, check.Detail)
+			fmt.Fprintf(os.Stdout, "%s: %s — %s\n", check.Label(), check.Status, check.Detail)
 		}
 		for _, check := range report.Checks {
 			fmt.Fprintf(os.Stdout, "%s: %s — %s\n", check.Name, check.Status, check.Detail)
