@@ -67,7 +67,7 @@ func UnitText(binary, path string) string {
 	return "[Unit]\nDescription=Weroxy client\nAfter=network-online.target\nWants=network-online.target\n[Service]\nType=simple\nUser=weroxy\nGroup=weroxy\nRuntimeDirectory=weroxycli\nRuntimeDirectoryMode=0700\nNoNewPrivileges=true\nProtectSystem=strict\nProtectHome=true\nPrivateTmp=true\nExecStart=" + strconv.Quote(binary) + " run --config " + strconv.Quote(path) + "\nRestart=on-failure\nRestartSec=5\n[Install]\nWantedBy=multi-user.target\n"
 }
 
-var entries = []string{"profile", "start/restart", "stop", "status", "开机自启", "doctor", "主机加固", "uninstall"}
+var entries = []string{"profile", "start/restart", "stop", "status", "autostart", "doctor", "host hardening", "uninstall"}
 
 func Run(ctx context.Context, opt Option) int {
 	if opt.Stdin == nil {
@@ -97,7 +97,7 @@ func Run(ctx context.Context, opt Option) int {
 	defer term.Close()
 	selected := 0
 	submenu := false
-	message := "选择 profile 配置 Host、Port、Key，然后 start/restart。"
+	message := "Configure Host, Port and Key in profile, then choose start/restart."
 	success := true
 	for ctx.Err() == nil {
 		options := entries
@@ -127,7 +127,7 @@ func Run(ctx context.Context, opt Option) int {
 				continue
 			}
 			action := options[selected]
-			if action == "开机自启" {
+			if action == "autostart" {
 				submenu = true
 				selected = 0
 				continue
@@ -148,10 +148,10 @@ func Run(ctx context.Context, opt Option) int {
 			if err = term.Pause(); err != nil {
 				return 1
 			}
-			if action == "主机加固" {
+			if action == "host hardening" {
 				if opt.Action != nil {
 					reader := bufio.NewReader(opt.Stdin)
-					fmt.Fprintln(opt.Stdout, "1 风险检测  2 SSH 加固  3 登录防护安装/配置  4 dry-run  5 回滚")
+					fmt.Fprintln(opt.Stdout, "1 Inspect risks  2 Harden SSH  3 Install/configure login protection  4 Dry run  5 Roll back")
 					choice, _ := reader.ReadString('\n')
 					choice = strings.TrimSpace(choice)
 					values := []string{"status"}
@@ -163,7 +163,7 @@ func Run(ctx context.Context, opt Option) int {
 					case "4":
 						values = []string{"ssh", "--dry-run"}
 					case "5":
-						fmt.Fprintln(opt.Stdout, "操作编号（Enter 使用最近一次）：")
+						fmt.Fprintln(opt.Stdout, "Operation ID (Enter for latest):")
 						id, _ := reader.ReadString('\n')
 						values = []string{"rollback"}
 						if strings.TrimSpace(id) != "" {
@@ -171,29 +171,29 @@ func Run(ctx context.Context, opt Option) int {
 						}
 					}
 					success = opt.Action("harden", values) == 0
-					message = "主机助手结束。"
+					message = "Host assistant finished."
 				}
 			} else if action == "doctor" {
 				if opt.Action != nil {
 					code := opt.Action("doctor", nil)
 					success = code == 0
-					message = "诊断完成。"
+					message = "Diagnostics completed."
 					if !success {
-						message = "诊断未通过，请查看上述原因。"
+						message = "Diagnostics failed; review the reasons above."
 					}
 				}
 			} else {
 				message, err = apply(ctx, opt, action)
 				success = err == nil
 				if err != nil {
-					message = "失败：" + err.Error()
+					message = "Failed: " + err.Error()
 				}
 			}
 			if action == "uninstall" && success {
 				fmt.Fprintln(opt.Stdout, message)
 				return 0
 			}
-			fmt.Fprintln(opt.Stdout, message, "\n按 Enter 返回菜单。")
+			fmt.Fprintln(opt.Stdout, message, "\nPress Enter to return to the menu.")
 			// Resume before waiting so cancellation and resize remain available.
 			if err = term.Resume(); err != nil {
 				return 1
@@ -213,11 +213,11 @@ func draw(out io.Writer, t Terminal, opt Option, options []string, selected int,
 	rows, cols := t.Size()
 	fmt.Fprint(out, "\x1b[H\x1b[2J")
 	if rows < 12 || cols < 32 {
-		fmt.Fprintln(out, "请放大终端；q 退出。 ")
+		fmt.Fprintln(out, "Enlarge the terminal; q to quit. ")
 		return
 	}
 	fmt.Fprintln(out, clip("WeroxyClient · TCP · "+runtime.GOARCH, cols-1))
-	fmt.Fprintln(out, clip("配置："+opt.ConfigPath, cols-1))
+	fmt.Fprintln(out, clip("Profile: "+opt.ConfigPath, cols-1))
 	fmt.Fprintln(out)
 	for i, item := range options {
 		prefix := "  "
@@ -239,7 +239,7 @@ func draw(out io.Writer, t Terminal, opt Option, options []string, selected int,
 		fmt.Fprintln(out, clip(line, cols-1))
 	}
 	fmt.Fprint(out, "\x1b[0m")
-	fmt.Fprintf(out, "\x1b[%d;1H↑↓ 选择 · Enter 执行 · Esc 返回 · q 退出", rows)
+	fmt.Fprintf(out, "\u001b[%d;1HUp/Down select | Enter execute | Esc back | q quit", rows)
 }
 func clip(s string, columns int) string {
 	var out strings.Builder
@@ -266,8 +266,8 @@ func input(ctx context.Context, t Terminal, out io.Writer, label, current string
 		rows, cols := t.Size()
 		fmt.Fprint(out, "\x1b[H\x1b[2J")
 		fmt.Fprintln(out, clip(label, cols-1))
-		fmt.Fprintln(out, clip("当前值："+current, cols-1))
-		fmt.Fprintln(out, "Enter 保留当前值 · Esc 取消")
+		fmt.Fprintln(out, clip("Current: "+current, cols-1))
+		fmt.Fprintln(out, "Enter keeps the current value | Esc cancels")
 		fmt.Fprintln(out, clip("> "+value, cols-1))
 		_ = rows
 		k, err := t.Key(ctx)
@@ -301,7 +301,7 @@ func editProfile(ctx context.Context, t Terminal, opt Option) (string, error) {
 	if loadErr == nil {
 		host, port, _ = net.SplitHostPort(current.Server)
 	}
-	prompts := []string{"Host（Server IP 或域名）", "Port（Control 默认 29999；没改过直接 Enter）", "Key（Web 设备连接密钥，明文输入）"}
+	prompts := []string{"Host (Server IP or domain)", "Port (Control default: 29999; Enter to keep)", "Key (device connection key from Web; visible input)"}
 	values := []string{host, port, current.Key}
 	for i, prompt := range prompts {
 		for {
@@ -310,7 +310,7 @@ func editProfile(ctx context.Context, t Terminal, opt Option) (string, error) {
 				return "", err
 			}
 			if !ok {
-				return "已取消；配置未保存。", nil
+				return "Cancelled; profile not saved.", nil
 			}
 			valid := v != ""
 			if i == 0 {
@@ -328,16 +328,16 @@ func editProfile(ctx context.Context, t Terminal, opt Option) (string, error) {
 				values[i] = v
 				break
 			}
-			prompt = "输入无效，请重试：" + prompts[i]
+			prompt = "Invalid input; try again: " + prompts[i]
 		}
 	}
 	if err := config.Save(opt.ConfigPath, values[0], values[2], values[1]); err != nil {
-		return "", fmt.Errorf("配置未保存：%w", err)
+		return "", fmt.Errorf("Profile not saved: %w", err)
 	}
 	if err := config.EnsureProfileOwner(opt.ConfigPath); err != nil {
 		return "", err
 	}
-	return "配置已保存；选择 start/restart 应用并连接 Server。", nil
+	return "Profile saved; choose start/restart to apply and connect to Server.", nil
 }
 func statusLines(ctx context.Context, opt Option) []string {
 	active, e := opt.System.Active(ctx)
@@ -356,7 +356,7 @@ func statusLines(ctx context.Context, opt Option) []string {
 			}
 		}
 	}
-	lines := []string{"系统：" + system + " / " + runtime.GOARCH, "服务：" + active, "开机自启：" + enabled, "传输模式：控制与握手已保护；业务流沿用原协议"}
+	lines := []string{"System: " + system + " / " + runtime.GOARCH, "Service: " + active, "Autostart: " + enabled, "Transport: control and binding protected; business traffic retains its original protocol"}
 	snap, ok := status.Read(status.Path(ServiceConfigPath))
 	if !ok && os.Geteuid() != 0 {
 		child, cancel := context.WithTimeout(ctx, 2*time.Second)
@@ -377,33 +377,33 @@ func statusLines(ctx context.Context, opt Option) []string {
 		cancel()
 	}
 	if !ok {
-		lines = append(lines, "控制连接：未知（暂无运行状态读数）")
+		lines = append(lines, "Control: unknown (no runtime status available)")
 		return lines
 	}
-	return append(lines, "控制连接："+status.StateText(snap.State), fmt.Sprintf("上行：%d B · 下行：%d B", snap.Up, snap.Down))
+	return append(lines, "Control: "+status.StateText(snap.State), fmt.Sprintf("Upload: %d B | Download: %d B", snap.Up, snap.Down))
 }
 func apply(ctx context.Context, opt Option, action string) (string, error) {
 	if !opt.System.HasSudo(ctx) {
-		return "", errors.New("需要 root 或 sudo 权限")
+		return "", errors.New("Root or sudo privileges required")
 	}
 	switch action {
 	case "start/restart", "start", "restart":
 		if err := installService(ctx, opt); err != nil {
-			return "", fmt.Errorf("配置同步失败：%w", err)
+			return "", fmt.Errorf("Profile synchronization failed: %w", err)
 		}
 		active, _ := opt.System.Active(ctx)
 		if action == "restart" || active == "active" {
-			return "已重启。", opt.System.Restart(ctx)
+			return "Restarted.", opt.System.Restart(ctx)
 		}
-		return "已启动。", opt.System.Start(ctx)
+		return "Started.", opt.System.Start(ctx)
 	case "stop":
-		return "已停止。", opt.System.Stop(ctx)
+		return "Stopped.", opt.System.Stop(ctx)
 	case "enable":
-		return "已开启开机自启；当前运行状态不变。", opt.System.Enable(ctx)
+		return "Autostart enabled; current running state unchanged.", opt.System.Enable(ctx)
 	case "disable":
-		return "已关闭开机自启；当前运行状态不变。", opt.System.Disable(ctx)
+		return "Autostart disabled; current running state unchanged.", opt.System.Disable(ctx)
 	case "install":
-		return "已同步配置。", installService(ctx, opt)
+		return "Profile synchronized.", installService(ctx, opt)
 	case "uninstall":
 		if err := opt.System.Stop(ctx); err != nil {
 			return "", err
@@ -414,16 +414,16 @@ func apply(ctx context.Context, opt Option, action string) (string, error) {
 		if err := opt.System.Uninstall(ctx, opt.ConfigPath); err != nil {
 			return "", err
 		}
-		return "已卸载软件并删除当前用户及服务配置。", nil
+		return "Package removed; current user and service profiles deleted.", nil
 	case "remove-service":
-		return "已停用服务。", opt.System.Remove(ctx)
+		return "Service disabled.", opt.System.Remove(ctx)
 	default:
-		return "", errors.New("未知操作")
+		return "", errors.New("Unknown action")
 	}
 }
 func installService(ctx context.Context, opt Option) error {
 	if _, err := config.Load(opt.ConfigPath); err != nil {
-		return fmt.Errorf("请先配置 profile：%w", err)
+		return fmt.Errorf("Configure profile first: %w", err)
 	}
 	if err := opt.System.EnsureUser(ctx); err != nil {
 		return err
@@ -520,10 +520,10 @@ func (realSystem) Install(ctx context.Context, unit, binary, configPath string) 
 	}()
 	// The package owns the program and unit. Configuration sync cannot replace them.
 	if filepath.Clean(binary) != ServiceBinaryPath {
-		return fmt.Errorf("请先通过原生安装包安装 /usr/bin/weroxy-client")
+		return fmt.Errorf("Install /usr/bin/weroxy-client using a native package first")
 	}
 	if _, err := os.Stat(UnitPath); err != nil {
-		return fmt.Errorf("原生安装包的服务单元不存在")
+		return fmt.Errorf("The native package service unit is missing")
 	}
 	info, err := os.Lstat(binary)
 	if err != nil || !info.Mode().IsRegular() {
@@ -620,7 +620,7 @@ func (realSystem) Uninstall(ctx context.Context, path string) error {
 		}
 	}
 	if manager == "" {
-		return errors.New("无法核实安装包归属；未删除配置")
+		return errors.New("Package ownership could not be verified; configuration was not deleted")
 	}
 	// The private helper uses a fixed subcommand and bounded paths, not rm -rf from Web input.
 	if err := privileged(ctx, nil, ServiceBinaryPath, "purge-profile", "--config", path); err != nil {

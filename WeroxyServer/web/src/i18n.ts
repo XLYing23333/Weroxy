@@ -827,8 +827,8 @@ coverage:"Coverage {percent}%", historySessions:"Peak sessions: {count}", connec
 
 export const i18n = createI18n({
   legacy: false,
-  locale: "zh",
-  fallbackLocale: "zh",
+  locale: "en",
+  fallbackLocale: "en",
   messages,
 });
 

@@ -19,7 +19,7 @@ func limitWeroxyDevice(args []string, opt Option) int {
 	}
 	maxPorts, err := requiredInt(args, "max-data-ports")
 	if err != nil {
-		fmt.Fprintln(opt.Stderr, "设备端口上限无效。")
+		fmt.Fprintln(opt.Stderr, "Invalid device port limit.")
 		return 2
 	}
 	db, log, code := openLegacyDB(data, opt)
@@ -32,7 +32,7 @@ func limitWeroxyDevice(args []string, opt Option) int {
 		fmt.Fprintln(opt.Stderr, weroxyStoreError(err))
 		return 1
 	}
-	fmt.Fprintln(opt.Stdout, "已更新设备数据端口上限。")
+	fmt.Fprintln(opt.Stdout, "Device data port limit updated.")
 	return 0
 }
 
@@ -43,7 +43,7 @@ func shrinkWeroxyForward(args []string, opt Option) int {
 	}
 	maxPorts, err := requiredInt(args, "max")
 	if err != nil {
-		fmt.Fprintln(opt.Stderr, "端口数量无效。")
+		fmt.Fprintln(opt.Stderr, "Invalid port count.")
 		return 2
 	}
 	db, log, code := openLegacyDB(data, opt)
@@ -56,7 +56,7 @@ func shrinkWeroxyForward(args []string, opt Option) int {
 		fmt.Fprintln(opt.Stderr, weroxyStoreError(err))
 		return 1
 	}
-	fmt.Fprintln(opt.Stdout, "已缩小转发。仍在使用的连接会继续，新会话不再进入被排空的端口。")
+	fmt.Fprintln(opt.Stdout, "Forward reduced. Existing connections continue; new sessions will not use draining ports.")
 	return 0
 }
 
@@ -80,7 +80,7 @@ func setWeroxyPool(args []string, opt Option) int {
 	if flagPresent(args, "reserved") {
 		reserved, err = requiredInt(args, "reserved")
 		if err != nil {
-			fmt.Fprintln(opt.Stderr, "预留端口数量无效。")
+			fmt.Fprintln(opt.Stderr, "Invalid reserved port count.")
 			return 2
 		}
 	}
@@ -91,12 +91,12 @@ func setWeroxyPool(args []string, opt Option) int {
 	}
 	forwardFirst, forwardLast, err := parseSpan(forward)
 	if err != nil {
-		fmt.Fprintln(opt.Stderr, "转发端口范围无效。")
+		fmt.Fprintln(opt.Stderr, "Invalid forwarding port range.")
 		return 2
 	}
 	dataFirst, dataLast, err := parseSpan(dataPool)
 	if err != nil {
-		fmt.Fprintln(opt.Stderr, "数据端口范围无效。")
+		fmt.Fprintln(opt.Stderr, "Invalid data port range.")
 		return 2
 	}
 	if err := server.Writable(data); err != nil {
@@ -116,7 +116,7 @@ func setWeroxyPool(args []string, opt Option) int {
 		fmt.Fprintln(opt.Stderr, weroxyStoreError(err))
 		return 1
 	}
-	fmt.Fprintln(opt.Stdout, "已启用端口池。")
+	fmt.Fprintln(opt.Stdout, "Port pool enabled.")
 	return 0
 }
 
@@ -128,19 +128,19 @@ func setWeroxyPolicy(args []string, opt Option) int {
 	values := sqlite.PolicyValues{}
 	var err error
 	if values.MaxPending, err = optionalLimit(args, "max-pending"); err != nil {
-		fmt.Fprintln(opt.Stderr, "限额无效。")
+		fmt.Fprintln(opt.Stderr, "Invalid quota.")
 		return 2
 	}
 	if values.MaxPerIP, err = optionalLimit(args, "max-per-ip"); err != nil {
-		fmt.Fprintln(opt.Stderr, "限额无效。")
+		fmt.Fprintln(opt.Stderr, "Invalid quota.")
 		return 2
 	}
 	if values.RatePerSec, err = optionalLimit(args, "rate"); err != nil {
-		fmt.Fprintln(opt.Stderr, "限额无效。")
+		fmt.Fprintln(opt.Stderr, "Invalid quota.")
 		return 2
 	}
 	if values.Burst, err = optionalLimit(args, "burst"); err != nil {
-		fmt.Fprintln(opt.Stderr, "限额无效。")
+		fmt.Fprintln(opt.Stderr, "Invalid quota.")
 		return 2
 	}
 	db, log, code := openLegacyDB(data, opt)
@@ -155,7 +155,7 @@ func setWeroxyPolicy(args []string, opt Option) int {
 		fmt.Fprintln(opt.Stderr, weroxyStoreError(err))
 		return 1
 	}
-	fmt.Fprintln(opt.Stdout, "已保存策略。")
+	fmt.Fprintln(opt.Stdout, "Policy saved.")
 	return 0
 }
 
@@ -181,7 +181,7 @@ func addWeroxyRule(args []string, opt Option, action string) int {
 		fmt.Fprintln(opt.Stderr, weroxyStoreError(err))
 		return 1
 	}
-	fmt.Fprintln(opt.Stdout, "已保存访问规则。")
+	fmt.Fprintln(opt.Stdout, "Access rules saved.")
 	return 0
 }
 
@@ -230,7 +230,7 @@ func showWeroxyCapacity(args []string, opt Option) int {
 	}
 	body, err := json.Marshal(out)
 	if err != nil {
-		fmt.Fprintln(opt.Stderr, "未能生成容量预览。")
+		fmt.Fprintln(opt.Stderr, "Unable to generate capacity preview.")
 		return 1
 	}
 	fmt.Fprintf(opt.Stdout, "%s\n", body)
@@ -281,7 +281,7 @@ func forwardRef(args []string, opt Option) (string, string, string, int) {
 	}
 	listen, err = canonicalAddr(listen)
 	if err != nil {
-		fmt.Fprintln(opt.Stderr, "监听地址无效。")
+		fmt.Fprintln(opt.Stderr, "Invalid listener address.")
 		return "", "", "", 2
 	}
 	if err := server.Writable(data); err != nil {
@@ -320,18 +320,18 @@ func policyRef(args []string, opt Option) (string, string, string, int) {
 	switch scope {
 	case "device":
 		if device == "" {
-			fmt.Fprintln(opt.Stderr, "设备策略需要 --device。")
+			fmt.Fprintln(opt.Stderr, "Device policy requires --device.")
 			return "", "", "", 2
 		}
 		key = device
 	case "forward":
 		if device == "" || listen == "" {
-			fmt.Fprintln(opt.Stderr, "转发策略需要 --device 和 --listen。")
+			fmt.Fprintln(opt.Stderr, "Forward policy requires --device and --listen.")
 			return "", "", "", 2
 		}
 		listen, err = canonicalAddr(listen)
 		if err != nil {
-			fmt.Fprintln(opt.Stderr, "监听地址无效。")
+			fmt.Fprintln(opt.Stderr, "Invalid listener address.")
 			return "", "", "", 2
 		}
 		key = sqlite.ForwardKey(device, listen)

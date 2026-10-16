@@ -437,6 +437,12 @@ func (db *DB) migrate(ctx context.Context) error {
 			_ = tx.Rollback()
 			return fmt.Errorf("migration %s: %w", name, err)
 		}
+		if version == 5 {
+			if _, err := tx.ExecContext(ctx, `UPDATE ui_settings SET locale = 'en' WHERE id = 1`); err != nil {
+				_ = tx.Rollback()
+				return err
+			}
+		}
 		if _, err := tx.ExecContext(ctx,
 			`INSERT INTO schema_migrations(version, applied_at, checksum) VALUES (?, ?, ?)`,
 			version, time.Now().UTC().Format(time.RFC3339Nano), sum,

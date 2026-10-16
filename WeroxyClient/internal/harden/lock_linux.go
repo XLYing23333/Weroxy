@@ -27,7 +27,7 @@ func lock() (func(), error) {
 	}
 	if e = unix.Flock(int(f.Fd()), unix.LOCK_EX|unix.LOCK_NB); e != nil {
 		f.Close()
-		return nil, errors.New("另一加固操作正在执行")
+		return nil, errors.New("Another hardening operation is running")
 	}
 	return func() { f.Close() }, nil
 }
@@ -39,7 +39,7 @@ func trustedExecutable(path string) error {
 	}
 	raw, ok := st.Sys().(*syscall.Stat_t)
 	if !ok || raw.Uid != 0 || st.Mode().Perm()&0022 != 0 {
-		return errors.New("回滚程序必须由 root 拥有且其他用户不可写；请先安装原生包")
+		return errors.New("Rollback executable must be root-owned and not writable by others; install the native package first")
 	}
 	return nil
 }
@@ -51,7 +51,7 @@ func trustedDirectory(path string) error {
 	}
 	raw, ok := st.Sys().(*syscall.Stat_t)
 	if !ok || raw.Uid != 0 || st.Mode().Perm()&0022 != 0 {
-		return errors.New("备份目录必须由 root 拥有且其他用户不可写")
+		return errors.New("Backup directory must be root-owned and not writable by others")
 	}
 	return nil
 }

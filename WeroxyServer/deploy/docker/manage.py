@@ -498,14 +498,14 @@ def main(argv=None):
                 raise RuntimeError("use upgrade to change the deployment image")
             was_running = bool(own_published_ports(image))
             old = {p: p.read_bytes() if p.exists() else None for p in (PUBLICATION, DATA / "host-port-plan.json")}
-            print('Check entry and pool ports / 检查入口与端口池', flush=True)
+            print("Check entry and pool ports", flush=True)
             publication = prepare_publication(image)
             services = ("weroxy",)
             opened = []
             try:
                 compose("up", "-d", "--no-build", *services, image=image)
                 ready(image)
-                print('Verify firewall and Docker ingress / 验证防火墙与 Docker 入站', flush=True)
+                print("Verify host port publication and ingress", flush=True)
                 opened = port_plan.open_firewall(publication)
                 port_plan.verify_ingress(publication, DATA)
                 install_publication_timer()
@@ -592,7 +592,7 @@ def main(argv=None):
                 replacement_started = True
                 compose("up", "-d", "--no-build", *services, image=image)
                 ready(image)
-                print('Verify firewall and Docker ingress / 验证防火墙与 Docker 入站', flush=True)
+                print("Verify host port publication and ingress", flush=True)
                 opened = port_plan.open_firewall(publication)
                 port_plan.verify_ingress(publication, DATA)
                 install_publication_timer()

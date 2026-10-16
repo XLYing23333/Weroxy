@@ -37,7 +37,7 @@ func TestPoolPolicyAndCapacity(t *testing.T) {
 	walkSecret(t, filepath.Join(dir, "logs"), token)
 	run("weroxy", "pool", "set", "--data", dir, "--forward-pool", "20000-20099", "--data-pool", "21000-21119", "--reserved", "10", "--bind-host", "127.0.0.1")
 	run("weroxy", "device", "limit", "--data", dir, "--name", "box", "--max-data-ports", "6")
-	if !strings.Contains(fail("weroxy", "forward", "add", "--data", dir, "--device", "box", "--listen", "127.0.0.1:19999", "--target", "127.0.0.1:9"), "端口范围") {
+	if !strings.Contains(fail("weroxy", "forward", "add", "--data", dir, "--device", "box", "--listen", "127.0.0.1:19999", "--target", "127.0.0.1:9"), "port range") {
 		t.Fatalf("outside=%s", stderr.String())
 	}
 	run("weroxy", "forward", "add", "--data", dir, "--device", "box", "--listen", "127.0.0.1:24150", "--target", "127.0.0.1:9", "--import")
@@ -78,7 +78,7 @@ func TestPoolPolicyAndCapacity(t *testing.T) {
 		t.Fatalf("views=%s", stdout.String())
 	}
 	run("weroxy", "policy", "set", "--data", dir, "--scope", "global", "--max-per-ip", "1")
-	if !strings.Contains(fail("weroxy", "policy", "set", "--data", dir, "--scope", "forward", "--device", "box", "--listen", "127.0.0.1:20010", "--max-per-ip", "2"), "更松") {
+	if !strings.Contains(fail("weroxy", "policy", "set", "--data", dir, "--scope", "forward", "--device", "box", "--listen", "127.0.0.1:20010", "--max-per-ip", "2"), "less restrictive") {
 		t.Fatalf("looser=%s", stderr.String())
 	}
 	run("weroxy", "policy", "set", "--data", dir, "--scope", "forward", "--device", "box", "--listen", "127.0.0.1:20010", "--max-per-ip", "0")

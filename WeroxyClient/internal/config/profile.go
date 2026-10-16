@@ -14,7 +14,7 @@ import (
 // InitialProfile is a recognizable, secret-free profile awaiting TUI setup.
 const InitialProfile = "# WeroxyClient: configure Host, Port and Key in the TUI.\n"
 
-var ErrUnconfigured = errors.New("客户端尚未配置，请先在菜单中配置连接")
+var ErrUnconfigured = errors.New("Client is not configured; set up the connection in the menu first")
 
 // DefaultUserPath never probes the private system service profile.
 func DefaultUserPath() (string, error) {
@@ -28,7 +28,7 @@ func DefaultUserPath() (string, error) {
 	if os.Geteuid() == 0 && os.Getenv("SUDO_USER") != "" && os.Getenv("SUDO_USER") != "root" {
 		account, err := user.Lookup(os.Getenv("SUDO_USER"))
 		if err != nil || !filepath.IsAbs(account.HomeDir) {
-			return "", fmt.Errorf("无法确定 sudo 调用用户的主目录")
+			return "", fmt.Errorf("Unable to determine the invoking user's home directory")
 		}
 		return filepath.Join(account.HomeDir, ".config", "weroxy_client", "client.conf"), nil
 	}
@@ -36,7 +36,7 @@ func DefaultUserPath() (string, error) {
 	if err != nil || !filepath.IsAbs(home) {
 		account, lookupErr := user.Current()
 		if lookupErr != nil || !filepath.IsAbs(account.HomeDir) {
-			return "", fmt.Errorf("无法确定当前用户的主目录")
+			return "", fmt.Errorf("Unable to determine the current user's home directory")
 		}
 		home = account.HomeDir
 	}
@@ -54,7 +54,7 @@ func EnsureUserProfile(path string) error {
 		return err
 	}
 	if !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
-		return errors.New("配置目录必须是普通目录")
+		return errors.New("Profile directory must be an ordinary directory")
 	}
 	if err := os.Chmod(dir, 0700); err != nil {
 		return err
@@ -66,7 +66,7 @@ func EnsureUserProfile(path string) error {
 			return statErr
 		}
 		if !info.Mode().IsRegular() || info.Mode().Perm() != 0600 {
-			return errors.New("已有配置必须是权限 0600 的普通文件")
+			return errors.New("Existing profile must be a regular file with mode 0600")
 		}
 		return EnsureProfileOwner(path)
 	}
@@ -121,7 +121,7 @@ func EnsureProfileOwner(path string) error {
 			return e
 		}
 		if info.Mode()&os.ModeSymlink != 0 {
-			return errors.New("配置不能使用符号链接")
+			return errors.New("Configuration must not be a symbolic link")
 		}
 		if e = os.Chown(item, uid, gid); e != nil {
 			return e
@@ -141,12 +141,12 @@ func Purge(path string) error {
 		return err
 	}
 	if !info.Mode().IsRegular() {
-		return errors.New("配置必须是普通文件")
+		return errors.New("Configuration must be a regular file")
 	}
 	dir := filepath.Dir(path)
 	dirInfo, err := os.Lstat(dir)
 	if err != nil || !dirInfo.IsDir() || dirInfo.Mode()&os.ModeSymlink != 0 {
-		return errors.New("配置目录必须是普通目录")
+		return errors.New("Profile directory must be an ordinary directory")
 	}
 	cfg, _ := Load(path)
 	files := []string{path, filepath.Join(dir, "weroxy-client.status")}

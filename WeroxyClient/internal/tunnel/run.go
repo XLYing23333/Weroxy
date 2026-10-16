@@ -54,7 +54,7 @@ type Options struct {
 // Run dials the server until ctx is cancelled or the credential is rejected.
 func Run(ctx context.Context, opt Options) error {
 	if len(opt.Token) != 32 {
-		return errors.New("token 长度无效")
+		return errors.New("Invalid token length")
 	}
 	if opt.MinBackoff <= 0 {
 		opt.MinBackoff = defaultMin

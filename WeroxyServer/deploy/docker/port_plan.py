@@ -4,6 +4,7 @@ import json
 import os
 import pathlib
 import socket
+import shutil
 import sqlite3
 import subprocess
 
@@ -74,17 +75,20 @@ def spans(ports):
 
 
 def check_firewall():
+    if shutil.which("ufw") is None:
+        return False
     info=pathlib.Path("/etc/os-release").read_text()
     if not any(token in info for token in ('ID=debian','ID=ubuntu','ID_LIKE=debian')):
         raise RuntimeError("automatic firewall requires a Debian-family host")
-    if not pathlib.Path("/usr/sbin/ufw").exists():
-        raise RuntimeError("The configured firewall manager is required; see README")
     status=subprocess.run(["ufw","status"],check=True,capture_output=True,text=True,env={**os.environ,"LC_ALL":"C"}).stdout
     if "Status: active" not in status:raise RuntimeError("The host firewall must be active before starting Weroxy")
+    return True
 
 
 def open_firewall(value):
-    check_firewall()
+    if not check_firewall():
+        print("Automatic firewall configuration skipped: manager not installed.", flush=True)
+        return []
     rules=spans([outside for outside,_ in value["ports"]])
     added=[]
     try:

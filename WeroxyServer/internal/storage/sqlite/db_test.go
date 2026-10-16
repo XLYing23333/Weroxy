@@ -390,3 +390,28 @@ func TestConcurrentCloseRejectsLateWritersWithoutLeaks(t *testing.T) {
 		}
 	}
 }
+
+func TestNewInstallationLocaleAndSavedPreference(t *testing.T) {
+	db := openTemp(t, DefaultQueue)
+	ctx := context.Background()
+	settings, err := db.UI(ctx)
+	if err != nil || settings.Locale != "en" {
+		t.Fatalf("initial locale=%s err=%v", settings.Locale, err)
+	}
+	settings.Locale = "zh"
+	if err := db.SetUI(ctx, settings); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Close(); err != nil {
+		t.Fatal(err)
+	}
+	reopened, err := Open(db.path, DefaultQueue)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer reopened.Close()
+	saved, err := reopened.UI(ctx)
+	if err != nil || saved.Locale != "zh" {
+		t.Fatalf("saved locale=%s err=%v", saved.Locale, err)
+	}
+}

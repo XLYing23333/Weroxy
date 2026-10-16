@@ -47,7 +47,7 @@ func Load(path string) (Config, error) {
 		}
 		key, value, ok := strings.Cut(line, "=")
 		if !ok {
-			return Config{}, fmt.Errorf("配置行缺少等号")
+			return Config{}, fmt.Errorf("Configuration line is missing an equals sign")
 		}
 		key = strings.TrimSpace(key)
 		value = strings.TrimSpace(value)
@@ -63,7 +63,7 @@ func Load(path string) (Config, error) {
 		case "tls_cert", "target.allow", "target.deny_cidr", "target.deny_port":
 			// Accepted only to read 0.2.0 profiles; these policies are no longer active.
 		default:
-			return Config{}, fmt.Errorf("未知配置项")
+			return Config{}, fmt.Errorf("Unknown configuration key")
 		}
 	}
 	if err := sc.Err(); err != nil {
@@ -71,27 +71,27 @@ func Load(path string) (Config, error) {
 	}
 	if cfg.KeyPath != "" {
 		if cfg.Key != "" {
-			return Config{}, errors.New("不能同时设置 client.key 和 client.key_file")
+			return Config{}, errors.New("Do not set both client.key and client.key_file")
 		}
 		if !filepath.IsAbs(cfg.KeyPath) {
 			cfg.KeyPath = filepath.Join(filepath.Dir(path), cfg.KeyPath)
 		}
 		token, err := ReadTokenFile(cfg.KeyPath)
 		if err != nil {
-			return Config{}, fmt.Errorf("读取独立密钥文件失败: %w", err)
+			return Config{}, fmt.Errorf("Unable to read the separate key file: %w", err)
 		}
 		cfg.Key = hex.EncodeToString(token)
 		clear(token)
 	}
 	if host == "" || cfg.Key == "" {
-		return Config{}, errors.New("配置需要 server.host、client.key 和 server.port")
+		return Config{}, errors.New("Configuration requires server.host, client.key and server.port")
 	}
 	if port == "" {
 		port = ControlPort
 	}
 	cfg.Server = net.JoinHostPort(host, port)
 	if _, err := canonical(cfg.Server); err != nil {
-		return Config{}, fmt.Errorf("server 地址无效")
+		return Config{}, fmt.Errorf("Invalid Server address")
 	}
 	if _, err := decodeToken([]byte(cfg.Key)); err != nil {
 		return Config{}, err
@@ -122,7 +122,7 @@ func decodeToken(body []byte) ([]byte, error) {
 	text := strings.TrimSpace(string(body))
 	raw, err := hex.DecodeString(text)
 	if err != nil || len(raw) != 32 {
-		return nil, errors.New("token 必须是 64 位十六进制")
+		return nil, errors.New("Token must contain 64 hexadecimal characters")
 	}
 	return raw, nil
 }
@@ -136,11 +136,11 @@ func Save(path, host, key, port string) error {
 		return err
 	}
 	if strings.ContainsAny(host, "\r\n\t =") {
-		return errors.New("server 地址无效")
+		return errors.New("Invalid Server address")
 	}
 	server := net.JoinHostPort(host, port)
 	if _, err := canonical(server); err != nil {
-		return fmt.Errorf("server 地址无效")
+		return fmt.Errorf("Invalid Server address")
 	}
 	var body strings.Builder
 	body.WriteString("server.host=" + host + "\nserver.port=" + port + "\n")
@@ -157,7 +157,7 @@ func Save(path, host, key, port string) error {
 			return e
 		}
 		if !info.Mode().IsRegular() || info.Size() > 1<<20 {
-			return errors.New("旧配置必须是大小有界的普通文件")
+			return errors.New("Legacy configuration must be a size-bounded regular file")
 		}
 		body, e := os.ReadFile(path)
 		if e != nil {
@@ -260,7 +260,7 @@ func readSecureFile(path string, limit int64) ([]byte, error) {
 		return nil, err
 	}
 	if !info.Mode().IsRegular() || info.Size() > limit || secureProfile(path, info) != nil {
-		return nil, errors.New("配置或密钥文件权限、类型或大小无效")
+		return nil, errors.New("Invalid profile/key file permissions, type or size")
 	}
 	file, err := os.Open(path)
 	if err != nil {
@@ -269,12 +269,12 @@ func readSecureFile(path string, limit int64) ([]byte, error) {
 	defer file.Close()
 	opened, err := file.Stat()
 	if err != nil || !opened.Mode().IsRegular() || !os.SameFile(info, opened) || secureProfile(path, opened) != nil {
-		return nil, errors.New("配置或密钥文件已改变")
+		return nil, errors.New("Profile or key file changed")
 	}
 	body, err := io.ReadAll(io.LimitReader(file, limit+1))
 	if err != nil || int64(len(body)) > limit {
 		clear(body)
-		return nil, errors.New("读取配置或密钥文件失败或超过大小预算")
+		return nil, errors.New("Unable to read profile/key file or size budget exceeded")
 	}
 	return body, nil
 }

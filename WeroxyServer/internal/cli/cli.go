@@ -46,11 +46,11 @@ func Run(args []string, opt Option) int {
 	}
 	for _, arg := range args {
 		if arg == "--password" || strings.HasPrefix(arg, "--password=") {
-			fmt.Fprintln(opt.Stderr, "已拒绝 --password。请使用终端输入、--password-file 或标准输入。")
+			fmt.Fprintln(opt.Stderr, "--password is not allowed. Use terminal input, --password-file or standard input.")
 			return 2
 		}
 		if arg == "--key" || strings.HasPrefix(arg, "--key=") || arg == "--token" || strings.HasPrefix(arg, "--token=") {
-			fmt.Fprintln(opt.Stderr, "已拒绝在命令参数中提供 Key 或 Token。")
+			fmt.Fprintln(opt.Stderr, "Key or Token must not be supplied in command arguments.")
 			return 2
 		}
 	}
@@ -249,9 +249,9 @@ func admin(args []string, opt Option, bootstrap bool) int {
 	}
 	log.Info("administrator updated", map[string]string{"action": action(bootstrap), "username": username})
 	if bootstrap {
-		fmt.Fprintln(opt.Stdout, "管理员已创建。")
+		fmt.Fprintln(opt.Stdout, "Administrator created.")
 	} else {
-		fmt.Fprintln(opt.Stdout, "密码已更新。")
+		fmt.Fprintln(opt.Stdout, "Password updated.")
 	}
 	return 0
 }
@@ -259,30 +259,30 @@ func admin(args []string, opt Option, bootstrap bool) int {
 func passwordError(err error) string {
 	switch {
 	case errors.Is(err, auth.ErrPasswordFile):
-		return "密码文件不存在，或可被同组及其他用户读取。"
+		return "Password file is missing or readable by group/others."
 	case errors.Is(err, auth.ErrPasswordLength):
-		return "密码长度必须在 6 到 1024 字节之间。"
+		return "Password length must be between 6 and 1024 bytes."
 	case errors.Is(err, auth.ErrHashBusy):
-		return "密码哈希繁忙，请稍后重试。"
+		return "Password hashing is busy; try again later."
 	default:
-		return "未能读取密码。"
+		return "Unable to read the password."
 	}
 }
 
 func adminError(err error) string {
 	switch {
 	case errors.Is(err, sqlite.ErrAdminExists):
-		return "管理员已存在。"
+		return "Administrator already exists."
 	case errors.Is(err, sqlite.ErrNoAdmin):
-		return "管理员不存在。"
+		return "Administrator not found."
 	case errors.Is(err, sqlite.ErrQueueFull), errors.Is(err, sqlite.ErrDatabaseBusy):
-		return "数据库繁忙或写入队列已满，未修改管理员。"
+		return "Database busy or write queue full; administrator unchanged."
 	case errors.Is(err, auth.ErrPasswordLength):
-		return "密码长度必须在 6 到 1024 字节之间。"
+		return "Password length must be between 6 and 1024 bytes."
 	case errors.Is(err, auth.ErrHashBusy):
-		return "密码哈希繁忙，请稍后重试。"
+		return "Password hashing is busy; try again later."
 	default:
-		return "未能更新管理员。"
+		return "Unable to update the administrator."
 	}
 }
 

@@ -3,7 +3,7 @@ import socket
 import sqlite3
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 
 import port_plan
 
@@ -49,6 +49,25 @@ class PortPlanTest(unittest.TestCase):
                 self.assertEqual(client.recv(1),b'')
         self.assertTrue(port_plan.host_port_free('127.0.0.1',port))
 
+
+
+class OptionalFirewallTest(unittest.TestCase):
+    def test_missing_manager_skips_all_firewall_work(self):
+        with patch('port_plan.shutil.which',return_value=None), patch('port_plan.subprocess.run') as run, patch('port_plan.pathlib.Path.read_text',side_effect=AssertionError('OS inspection must not block skipping')):
+            self.assertFalse(port_plan.check_firewall())
+            self.assertEqual(port_plan.open_firewall({'ports':[(40000,40000)]}),[])
+            port_plan.close_firewall([])
+            run.assert_not_called()
+
+    def test_installed_inactive_manager_is_not_silently_skipped(self):
+        with patch('port_plan.shutil.which',return_value='/usr/sbin/ufw'), patch('port_plan.pathlib.Path.read_text',return_value='ID=debian'), patch('port_plan.subprocess.run',return_value=Mock(stdout='Status: inactive')):
+            with self.assertRaisesRegex(RuntimeError,'must be active'):
+                port_plan.open_firewall({'ports':[(40000,40000)]})
+
+    def test_installed_active_manager_still_applies_rules(self):
+        with patch('port_plan.shutil.which',return_value='/usr/sbin/ufw'), patch('port_plan.pathlib.Path.read_text',return_value='ID=debian'), patch('port_plan.subprocess.run',side_effect=[Mock(stdout='Status: active'),Mock(stdout='Rule added'),Mock(stdout='Status: active\n40000/tcp')]) as run:
+            self.assertEqual(port_plan.open_firewall({'ports':[(40000,40000)]}),['40000'])
+            self.assertEqual(run.call_args_list[1].args[0],['ufw','allow','40000/tcp','comment','Weroxy'])
 
 if __name__ == '__main__':
     unittest.main()

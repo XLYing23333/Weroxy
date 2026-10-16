@@ -50,7 +50,7 @@ func packageCommand(ctx context.Context, name string, args ...string) (string, e
 	cmd.WaitDelay = time.Second
 	e := cmd.Run()
 	if out.exceeded {
-		return "", errors.New("包信息超出上限")
+		return "", errors.New("Package metadata exceeds its size limit")
 	}
 	return string(out.body), e
 }
@@ -108,15 +108,15 @@ func readPackageInfo(ctx context.Context, path, format string, installed bool) (
 			}
 		}
 	default:
-		return info, errors.New("只支持 deb/RPM/pacman 安装包")
+		return info, errors.New("Only deb/RPM/pacman packages are supported")
 	}
 	if e != nil {
-		return info, errors.New("不能读取本机包管理器中的安装包信息")
+		return info, errors.New("Unable to read installed package metadata")
 	}
 	if format != ".pkg.tar.zst" {
 		parts := strings.Split(strings.TrimSpace(text), "\n")
 		if len(parts) != 3 {
-			return info, errors.New("安装包元数据无效")
+			return info, errors.New("Invalid package metadata")
 		}
 		info.Name, info.Version, info.Arch = parts[0], parts[1], parts[2]
 	}
@@ -129,28 +129,28 @@ func readPackageInfo(ctx context.Context, path, format string, installed bool) (
 		}
 	}
 	if info.Name != "weroxy-client" || info.Arch != arch || info.Version == "" {
-		return info, errors.New("包名、版本或架构不匹配")
+		return info, errors.New("Package name, version or architecture mismatch")
 	}
 	return info, nil
 }
 func verifyPackage(ctx context.Context, source, hash, dest, format string) (packageInfo, error) {
 	info := packageInfo{}
 	if len(hash) != 64 {
-		return info, errors.New("需要可信的完整 SHA-256")
+		return info, errors.New("A trusted full SHA-256 digest is required")
 	}
 	if _, e := hex.DecodeString(hash); e != nil {
-		return info, errors.New("SHA-256 格式无效")
+		return info, errors.New("Invalid SHA-256 format")
 	}
 	// O_NOFOLLOW prevents a symlink from substituting the trusted candidate.
 	fd, e := syscall.Open(source, syscall.O_RDONLY|syscall.O_NOFOLLOW, 0)
 	if e != nil {
-		return info, errors.New("安装包不是可读取的普通文件")
+		return info, errors.New("Package must be a readable regular file")
 	}
 	f := os.NewFile(uintptr(fd), source)
 	defer f.Close()
 	st, e := f.Stat()
 	if e != nil || !st.Mode().IsRegular() || st.Size() < 1 || st.Size() > maxPackage {
-		return info, errors.New("安装包大小或类型无效")
+		return info, errors.New("Invalid package size or type")
 	}
 	out, e := os.OpenFile(dest, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
 	if e != nil {
@@ -160,7 +160,7 @@ func verifyPackage(ctx context.Context, source, hash, dest, format string) (pack
 	h := sha256.New()
 	n, e := io.Copy(io.MultiWriter(out, h), io.LimitReader(f, maxPackage+1))
 	if e != nil || n != st.Size() || !strings.EqualFold(hex.EncodeToString(h.Sum(nil)), hash) {
-		return info, errors.New("安装包 SHA-256 不匹配或文件已改变")
+		return info, errors.New("Package SHA-256 mismatch or file changed")
 	}
 	if e = out.Sync(); e != nil {
 		return info, e
@@ -182,7 +182,7 @@ func installPackage(ctx context.Context, path, format string) error {
 	case ".pkg.tar.zst":
 		cmd = exec.CommandContext(ctx, "pacman", "-U", "--noconfirm", path)
 	default:
-		return errors.New("包格式无效")
+		return errors.New("Invalid package format")
 	}
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -202,7 +202,7 @@ func waitConnected(ctx context.Context, configPath string) error {
 		}
 		select {
 		case <-ctx.Done():
-			return errors.New("控制连接未恢复")
+			return errors.New("Control connection did not recover")
 		case <-tick.C:
 		}
 	}
@@ -213,11 +213,11 @@ func ownedCache() error {
 	}
 	st, e := os.Lstat(packageCache)
 	if e != nil || !st.IsDir() || st.Mode().Perm() != 0700 {
-		return errors.New("安装包缓存权限无效")
+		return errors.New("Invalid package cache permissions")
 	}
 	owner, ok := st.Sys().(*syscall.Stat_t)
 	if !ok || owner.Uid != 0 {
-		return errors.New("安装包缓存须由 root 拥有")
+		return errors.New("Package cache must be owned by root")
 	}
 	return nil
 }
@@ -225,17 +225,17 @@ func ownedCache() error {
 // ApplyPackage uses the native package database for both install and rollback.
 func ApplyPackage(ctx context.Context, source, hash, version, configPath, previous, previousHash string) error {
 	if os.Geteuid() != 0 {
-		return errors.New("安装包升级需要 root 权限")
+		return errors.New("Package upgrade requires root privileges")
 	}
 	if filepath.Clean(configPath) != status.InstalledConfigPath {
-		return errors.New("只能验证已安装服务配置")
+		return errors.New("Only the installed service configuration can be verified")
 	}
 	if _, e := config.Load(configPath); e != nil {
-		return errors.New("服务配置或凭据无效")
+		return errors.New("Invalid service configuration or credentials")
 	}
 	format := packageFormat(source)
 	if format == "" {
-		return errors.New("需要原生安装包")
+		return errors.New("A native installation package is required")
 	}
 	if e := ownedCache(); e != nil {
 		return e
@@ -260,7 +260,7 @@ func ApplyPackage(ctx context.Context, source, hash, version, configPath, previo
 		expected = strings.ReplaceAll(version, "-", ".") + "-1"
 	}
 	if candidate.Version != expected {
-		return errors.New("候选安装包版本不匹配")
+		return errors.New("Candidate package version mismatch")
 	}
 	current, e := readPackageInfo(ctx, "", format, true)
 	if e != nil {
@@ -271,17 +271,17 @@ func ApplyPackage(ctx context.Context, source, hash, version, configPath, previo
 		var record packageInfo
 		b, e := os.ReadFile(packageCache + "/current.json")
 		if e != nil || json.Unmarshal(b, &record) != nil {
-			return errors.New("缺少可验证的上一版安装包；请提供上一版包与可信 SHA-256")
+			return errors.New("A verified previous package and trusted SHA-256 digest are required")
 		}
 		previousHash = record.Hash
 	}
 	oldPath := work + "/rollback" + format
 	old, e := verifyPackage(ctx, previous, previousHash, oldPath, format)
 	if e != nil {
-		return fmt.Errorf("上一版包验证失败: %w", e)
+		return fmt.Errorf("Previous package verification failed: %w", e)
 	}
 	if old.Version != current.Version {
-		return errors.New("回滚包必须匹配当前已安装版本")
+		return errors.New("Rollback package must match the installed version")
 	}
 	wasActive := systemctl(ctx, "is-active", "--quiet", menu.UnitName) == nil
 	// No cancellation can strand a stopped service. Native package managers retain their own locks.
@@ -289,7 +289,7 @@ func ApplyPackage(ctx context.Context, source, hash, version, configPath, previo
 	defer stop()
 	if wasActive {
 		if e = systemctl(critical, "stop", menu.UnitName); e != nil {
-			return errors.New("停止服务失败")
+			return errors.New("Unable to stop the service")
 		}
 	}
 	rollback := func(cause error) error {
@@ -297,32 +297,32 @@ func ApplyPackage(ctx context.Context, source, hash, version, configPath, previo
 		defer cancelRollback()
 		_ = systemctl(critical, "stop", menu.UnitName)
 		if e := installPackage(critical, oldPath, format); e != nil {
-			return fmt.Errorf("升级失败，旧安装包恢复失败: %w", cause)
+			return fmt.Errorf("Upgrade failed and the previous package could not be restored: %w", cause)
 		}
 		_ = systemctl(critical, "daemon-reload")
 		if wasActive {
 			_ = systemctl(critical, "reset-failed", menu.UnitName)
 			if e := systemctl(critical, "start", menu.UnitName); e != nil {
-				return fmt.Errorf("旧服务启动失败: %w", cause)
+				return fmt.Errorf("Unable to start the previous service: %w", cause)
 			}
 			health, cancel := context.WithTimeout(critical, 35*time.Second)
 			e := waitConnected(health, configPath)
 			cancel()
 			if e != nil {
-				return fmt.Errorf("旧包已恢复，控制连接未恢复: %w", cause)
+				return fmt.Errorf("Previous package restored, but control connection did not recover: %w", cause)
 			}
 		}
-		return fmt.Errorf("升级失败，已恢复旧安装包与服务状态: %w", cause)
+		return fmt.Errorf("Upgrade failed; previous package and service state restored: %w", cause)
 	}
 	if e = installPackage(critical, candidatePath, format); e != nil {
-		return rollback(errors.New("安装候选包失败"))
+		return rollback(errors.New("Unable to install the candidate package"))
 	}
 	_ = systemctl(critical, "daemon-reload")
 	versionCtx, stopVersion := context.WithTimeout(critical, 3*time.Second)
 	out, e := candidateVersion(versionCtx, menu.ServiceBinaryPath)
 	stopVersion()
 	if e != nil || strings.TrimSpace(string(out)) != "weroxy-client "+version {
-		return rollback(errors.New("安装后程序版本检查失败"))
+		return rollback(errors.New("Post-install version check failed"))
 	}
 	if wasActive {
 		if e = systemctl(critical, "start", menu.UnitName); e != nil {
@@ -352,5 +352,5 @@ func ApplyPackage(ctx context.Context, source, hash, version, configPath, previo
 
 // Portable binary upgrades are no longer a Linux distribution interface.
 func Apply(context.Context, string, string, string, string) error {
-	return errors.New("Linux 升级请使用原生安装包 --package")
+	return errors.New("Use --package with a native package for Linux upgrades")
 }

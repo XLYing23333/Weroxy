@@ -45,7 +45,7 @@ func TestBootstrapResetAndLogs(t *testing.T) {
 		Stdout: &stdout,
 		Stderr: &stderr,
 	})
-	if code == 0 || !strings.Contains(stderr.String(), "管理员已存在") {
+	if code == 0 || !strings.Contains(stderr.String(), "Administrator already exists") {
 		t.Fatalf("second code=%d stderr=%s", code, stderr.String())
 	}
 	next := filepath.Join(dir, "next")
@@ -98,7 +98,7 @@ func TestLegacyDeviceAndForward(t *testing.T) {
 	code = Run([]string{"legacy", "device", "add", "--data", dir, "--name", "long", "--key-file", longFile}, Option{
 		Stdout: &stdout, Stderr: &stderr,
 	})
-	if code == 0 || !strings.Contains(stderr.String(), "超过 127") {
+	if code == 0 || !strings.Contains(stderr.String(), "127 bytes") {
 		t.Fatalf("long key code=%d stderr=%s", code, stderr.String())
 	}
 	info, err := os.Stat(filepath.Join(dir, "legacy-mac.key"))
@@ -141,7 +141,7 @@ func TestWeroxyDeviceHidesToken(t *testing.T) {
 	code = Run([]string{"weroxy", "device", "add", "--data", dir, "--name", "box"}, Option{
 		Stdout: &stdout, Stderr: &stderr,
 	})
-	if code != 0 || !strings.Contains(stdout.String(), "管理页可以再次查看并复制这个 token") {
+	if code != 0 || !strings.Contains(stdout.String(), "The management page can display and copy this token") {
 		t.Fatalf("code=%d out=%s err=%s", code, stdout.String(), stderr.String())
 	}
 	token := ""

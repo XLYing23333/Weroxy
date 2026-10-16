@@ -42,28 +42,28 @@ func Run(parent context.Context, cfg config.Config) Report {
 	}
 	host, _, err := net.SplitHostPort(cfg.Server)
 	if err != nil {
-		add("dns", "fail", "服务端地址无效")
+		add("dns", "fail", "Invalid Server address")
 		return report
 	}
 	if _, err := net.DefaultResolver.LookupHost(ctx, host); err != nil {
-		add("dns", "fail", "服务端名称无法解析")
+		add("dns", "fail", "Unable to resolve Server name")
 		return report
 	}
-	add("dns", "pass", "服务端名称可解析")
+	add("dns", "pass", "Server name resolved")
 	dial := func(addr string) (net.Conn, error) {
 		return (&net.Dialer{Timeout: 3 * time.Second}).DialContext(ctx, "tcp", addr)
 	}
 	conn, err := dial(cfg.Server)
 	if err != nil {
-		add("control_port", "fail", "控制端口连接失败；请检查 Host、Control Port、容器端口发布及防火墙")
+		add("control_port", "fail", "Control port connection failed; check Host, Control Port, container port publication and firewall")
 		return report
 	}
 	defer conn.Close()
-	add("control_port", "pass", "控制端口 TCP 连接成功")
+	add("control_port", "pass", "Control port TCP connection established")
 	_ = conn.SetDeadline(time.Now().Add(5 * time.Second))
 	token, err := config.ReadToken(strings.NewReader(cfg.Key))
 	if err != nil {
-		add("auth", "fail", "设备凭据格式无效")
+		add("auth", "fail", "Invalid device credential format")
 		return report
 	}
 	defer func() {
@@ -74,56 +74,56 @@ func Run(parent context.Context, cfg config.Config) Report {
 	credential := secure.Derive(token, "control")
 	encrypted, _, err := secure.Client(conn, 'C', credential.ID[:], credential.PSK, nil, nil)
 	if err != nil {
-		add("auth", "fail", "安全握手失败；请核对两端版本与 Key")
+		add("auth", "fail", "Secure handshake failed; check both endpoint versions and Key")
 		return report
 	}
 	conn = encrypted
 	reader := wp.Reader{R: conn}
-	add("transport", "pass", "控制与握手已保护；业务流沿用原协议")
+	add("transport", "pass", "Control and binding protected; business traffic retains its original protocol")
 	if err := write(conn, wp.TypeDiagnose, 2, cfg.DeviceID); err != nil {
-		add("auth", "fail", "诊断请求发送失败")
+		add("auth", "fail", "Unable to send diagnostic request")
 		return report
 	}
 	var frame wp.Frame
 	frame, err = reader.Next()
 	if err != nil {
-		add("auth", "fail", "诊断响应读取失败")
+		add("auth", "fail", "Unable to read diagnostic response")
 		return report
 	}
 	if frame.Type == wp.TypeError {
-		add("auth", "fail", "设备凭据被拒绝或已停用；请在 Server Web 核对 Key、设备状态及客户端版本")
+		add("auth", "fail", "Device credential rejected or disabled; check Key, device status and Client version in Server Web")
 		return report
 	}
 	if frame.Type != wp.TypeDiagnose {
-		add("auth", "fail", "服务端不支持诊断协议")
+		add("auth", "fail", "Server does not support the diagnostic protocol")
 		return report
 	}
 	parts, err := wp.Strings(frame.Body, 2)
 	if err != nil {
-		add("auth", "fail", "诊断响应格式无效")
+		add("auth", "fail", "Invalid diagnostic response format")
 		return report
 	}
-	add("auth", "pass", "设备凭据有效；未替换运行中的控制连接")
+	add("auth", "pass", "Device credential valid; running control connection was not replaced")
 	serverTime, err := time.Parse(time.RFC3339Nano, parts[0])
 	if err != nil {
-		add("time", "fail", "服务端时间格式无效")
+		add("time", "fail", "Invalid Server time format")
 	} else {
 		skew := time.Since(serverTime)
 		if skew < 0 {
 			skew = -skew
 		}
 		if skew > 2*time.Minute {
-			add("time", "fail", "两端时间偏差超过两分钟")
+			add("time", "fail", "Clock difference exceeds two minutes")
 		} else {
-			add("time", "pass", "两端时间偏差在两分钟内")
+			add("time", "pass", "Clock difference is within two minutes")
 		}
 	}
 	if parts[1] == "" {
-		add("data_ports", "skip", "该设备目前没有正在服务的数据端口")
+		add("data_ports", "skip", "No data port is currently serving this device")
 	} else {
 		ports := strings.Split(parts[1], ",")
 		if len(ports) > 200 {
-			add("data_ports", "fail", "服务端返回过多数据端口")
+			add("data_ports", "fail", "Server returned too many data ports")
 		} else {
 			failed := 0
 			for _, port := range ports {
@@ -144,13 +144,13 @@ func Run(parent context.Context, cfg config.Config) Report {
 				}
 			}
 			if failed > 0 {
-				add("data_ports", "fail", strconv.Itoa(failed)+" 个已分配数据端口不可达")
+				add("data_ports", "fail", strconv.Itoa(failed)+" assigned data port(s) unreachable")
 			} else {
-				add("data_ports", "pass", strconv.Itoa(len(ports))+" 个已分配数据端口可达")
+				add("data_ports", "pass", strconv.Itoa(len(ports))+" assigned data port(s) reachable")
 			}
 		}
 	}
-	add("targets", "skip", "目标由 Server Web 配置；实际目标可达性在建立转发时验证")
+	add("targets", "skip", "Targets are configured in Server Web; target reachability is checked when a forward is established")
 	return report
 }
 

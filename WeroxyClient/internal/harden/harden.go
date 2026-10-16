@@ -36,7 +36,7 @@ func command(ctx context.Context, name string, args ...string) (string, error) {
 	defer cancel()
 	b, e := exec.CommandContext(child, name, args...).CombinedOutput()
 	if e != nil {
-		return "", fmt.Errorf("%s 执行失败", name)
+		return "", fmt.Errorf("%s failed", name)
 	}
 	return string(b), nil
 }
@@ -71,19 +71,19 @@ func settings(ctx context.Context) (map[string]string, error) {
 }
 func Inspect(ctx context.Context) []Check {
 	if runtime.GOOS != "linux" {
-		return []Check{{"platform", "skip", "主机加固仅支持 Linux"}}
+		return []Check{{"platform", "skip", "Host hardening is only supported on Linux"}}
 	}
 	m, e := settings(ctx)
 	out := []Check{}
 	if e != nil {
-		out = append(out, Check{"sshd", "skip", "无法检测：需要足够权限及可用的 SSH 服务"})
+		out = append(out, Check{"sshd", "skip", "Unable to inspect: sufficient privileges and an available SSH service are required"})
 	} else {
 		for _, k := range []string{"permitrootlogin", "passwordauthentication", "kbdinteractiveauthentication", "persourcemaxstartups", "logingracetime"} {
 			value, ok := m[k]
 			state := "pass"
 			if !ok {
 				state = "skip"
-				value = "不支持"
+				value = "Unsupported"
 			} else if value == "yes" || value == "none" {
 				state = "warn"
 			} else if k == "logingracetime" {
@@ -96,11 +96,11 @@ func Inspect(ctx context.Context) []Check {
 		}
 	}
 	if _, e = command(ctx, "systemctl", "is-active", "--quiet", "fail2ban"); e != nil {
-		out = append(out, Check{"fail2ban", "warn", "未运行或无法检测"})
+		out = append(out, Check{"fail2ban", "warn", "Not running or unable to inspect"})
 	} else if _, e = command(ctx, "fail2ban-client", "status", "sshd"); e != nil {
-		out = append(out, Check{"fail2ban", "warn", "服务运行但登录防护规则无法确认"})
+		out = append(out, Check{"fail2ban", "warn", "Service running, but login protection rules could not be verified"})
 	} else {
-		out = append(out, Check{"fail2ban", "pass", "登录防护规则运行"})
+		out = append(out, Check{"fail2ban", "pass", "Login protection rules active"})
 	}
 	port := m["port"]
 	if port == "" {
@@ -118,12 +118,12 @@ func Inspect(ctx context.Context) []Check {
 			}
 		}
 		if broad {
-			out = append(out, Check{"sshd_listener", "warn", "SSH 在通配地址监听；公网可达还取决于防火墙"})
+			out = append(out, Check{"sshd_listener", "warn", "SSH listens on a wildcard address; public reachability also depends on the firewall"})
 		} else {
-			out = append(out, Check{"sshd_listener", "info", "未发现所选端口通配监听；不等于公网不可达"})
+			out = append(out, Check{"sshd_listener", "info", "No wildcard listener found for the selected port; this does not prove it is unreachable publicly"})
 		}
 	} else {
-		out = append(out, Check{"sshd_listener", "skip", "无法检查监听"})
+		out = append(out, Check{"sshd_listener", "skip", "Unable to inspect listeners"})
 	}
 	if text, err := command(ctx, "ufw", "status"); err == nil {
 		found := false
@@ -133,12 +133,12 @@ func Inspect(ctx context.Context) []Check {
 			}
 		}
 		if found {
-			out = append(out, Check{"firewall", "info", "发现所选端口限速规则，未验证实际防护"})
+			out = append(out, Check{"firewall", "info", "Rate-limit rule found for the selected port; protection is not verified"})
 		} else {
-			out = append(out, Check{"firewall", "warn", "未发现所选端口的防火墙限速规则；仅检测，不自动修改"})
+			out = append(out, Check{"firewall", "warn", "No firewall rate-limit rule found for the selected port; inspection only"})
 		}
 	} else {
-		out = append(out, Check{"firewall", "skip", "防火墙管理不可用或权限不足；不自动修改防火墙"})
+		out = append(out, Check{"firewall", "skip", "Firewall management unavailable or insufficient privileges; firewall remains unchanged"})
 	}
 	return out
 }
@@ -150,14 +150,14 @@ type Plan struct {
 }
 
 func prompt(r *bufio.Reader, w io.Writer, label, value string) (string, error) {
-	fmt.Fprintf(w, "%s [%s]（Enter 默认，输入 cancel 取消）: ", label, value)
+	fmt.Fprintf(w, "%s [%s] (Enter accepts default; type cancel to cancel): ", label, value)
 	s, e := r.ReadString('\n')
 	if e != nil {
-		return "", errors.New("输入取消，未应用配置")
+		return "", errors.New("Input cancelled; configuration was not applied")
 	}
 	s = strings.TrimSpace(s)
 	if s == "cancel" {
-		return "", errors.New("已取消")
+		return "", errors.New("Cancelled")
 	}
 	if s == "" {
 		s = value
@@ -172,39 +172,39 @@ func collect(r *bufio.Reader, w io.Writer, kind string, m map[string]string, ip 
 	if port == "" {
 		port = "22"
 	}
-	p.Port, e = prompt(r, w, "SSH 保护端口（不改变监听）", port)
+	p.Port, e = prompt(r, w, "SSH protection port (listener remains unchanged)", port)
 	if e != nil {
 		return p, e
 	}
 	if !positive(p.Port, 65535) {
-		return p, errors.New("SSH 端口无效")
+		return p, errors.New("Invalid SSH port")
 	}
 	if kind == "ssh" {
-		p.PerSource, e = prompt(r, w, "PerSourceMaxStartups（隧道可能共用本地来源）", "3")
+		p.PerSource, e = prompt(r, w, "PerSourceMaxStartups (tunnel connections may share a local source)", "3")
 		if e != nil {
 			return p, e
 		}
-		p.Grace, e = prompt(r, w, "LoginGraceTime 秒", "30")
+		p.Grace, e = prompt(r, w, "LoginGraceTime in seconds", "30")
 		if e != nil {
 			return p, e
 		}
 		if !positive(p.PerSource, 10000) || !positive(p.Grace, 3600) {
-			return p, errors.New("SSH 参数无效")
+			return p, errors.New("Invalid SSH parameters")
 		}
-		keep, e := prompt(r, w, "保留当前密码认证？Y/n", "Y")
+		keep, e := prompt(r, w, "Keep current password authentication? Y/n", "Y")
 		if e != nil {
 			return p, e
 		}
 		if !strings.EqualFold(keep, "y") && !strings.EqualFold(keep, "n") {
-			return p, errors.New("请选择 Y/n")
+			return p, errors.New("Choose Y/n")
 		}
 		p.DisablePassword = strings.EqualFold(keep, "n")
-		p.Root, e = prompt(r, w, "root 登录方式 keep/prohibit-password/no", "keep")
+		p.Root, e = prompt(r, w, "Root login mode: keep/prohibit-password/no", "keep")
 		if e != nil {
 			return p, e
 		}
 		if p.Root != "keep" && p.Root != "prohibit-password" && p.Root != "no" {
-			return p, errors.New("root 模式无效")
+			return p, errors.New("Invalid root login mode")
 		}
 		text := "# Managed by Weroxy; optional host hardening\nPerSourceMaxStartups " + p.PerSource + "\nLoginGraceTime " + p.Grace + "\n"
 		if p.DisablePassword {
@@ -215,12 +215,12 @@ func collect(r *bufio.Reader, w io.Writer, kind string, m map[string]string, ip 
 		}
 		p.Files[sshFile] = text
 	}
-	install, e := prompt(r, w, "安装并配置登录防护组件？Y/n", "Y")
+	install, e := prompt(r, w, "Install and configure login protection? Y/n", "Y")
 	if e != nil {
 		return p, e
 	}
 	if !strings.EqualFold(install, "y") && !strings.EqualFold(install, "n") {
-		return p, errors.New("请选择 Y/n")
+		return p, errors.New("Choose Y/n")
 	}
 	if strings.EqualFold(install, "y") {
 		p.MaxRetry, e = prompt(r, w, "maxretry", "3")
@@ -236,12 +236,12 @@ func collect(r *bufio.Reader, w io.Writer, kind string, m map[string]string, ip 
 			return p, e
 		}
 		if !positive(p.MaxRetry, 100) {
-			return p, errors.New("maxretry 无效")
+			return p, errors.New("Invalid maxretry")
 		}
 		for _, s := range []string{p.FindTime, p.BanTime} {
 			d, e := time.ParseDuration(s)
 			if e != nil || d < time.Second || d > 30*24*time.Hour {
-				return p, errors.New("时间参数无效")
+				return p, errors.New("Invalid time parameter")
 			}
 		}
 		ignore := "127.0.0.1/8,::1"
@@ -251,17 +251,17 @@ func collect(r *bufio.Reader, w io.Writer, kind string, m map[string]string, ip 
 		if ip != "" {
 			ignore += "," + ip
 		}
-		p.Ignore, e = prompt(r, w, "ignoreip（必须包含当前管理来源及回环）", ignore)
+		p.Ignore, e = prompt(r, w, "ignoreip (must include current management source and loopback)", ignore)
 		if e != nil {
 			return p, e
 		}
 		if ip == "" {
-			ip, e = prompt(r, w, "无法识别来源：填写可信管理 IP", "")
+			ip, e = prompt(r, w, "Unable to identify source; enter a trusted management IP", "")
 			if e != nil {
 				return p, e
 			}
 			if net.ParseIP(ip) == nil {
-				return p, errors.New("管理 IP 无效")
+				return p, errors.New("Invalid management IP")
 			}
 		}
 		covered := false
@@ -271,7 +271,7 @@ func collect(r *bufio.Reader, w io.Writer, kind string, m map[string]string, ip 
 			v := net.ParseIP(s)
 			_, network, nerr := net.ParseCIDR(s)
 			if v == nil && nerr != nil {
-				return p, errors.New("ignoreip 必须为合法 IP/CIDR")
+				return p, errors.New("ignoreip must contain valid IP addresses or CIDRs")
 			}
 			contains := func(x string) bool {
 				a := net.ParseIP(x)
@@ -283,12 +283,12 @@ func collect(r *bufio.Reader, w io.Writer, kind string, m map[string]string, ip 
 			if network != nil {
 				ones, _ := network.Mask.Size()
 				if ones == 0 {
-					return p, errors.New("禁止白名单放行全部来源")
+					return p, errors.New("Whitelisting all sources is prohibited")
 				}
 			}
 		}
 		if !covered || !loop4 || !loop6 {
-			return p, errors.New("白名单必须包含管理来源和双栈回环")
+			return p, errors.New("Allowlist must include the management source and both loopback addresses")
 		}
 		p.Files[jailFile] = "# Managed by Weroxy; direct SSH only, not original tunnel visitor IPs\n[sshd]\nenabled = true\nbackend = systemd\nport = " + p.Port + "\nmaxretry = " + p.MaxRetry + "\nfindtime = " + p.FindTime + "\nbantime = " + p.BanTime + "\nignoreip = " + strings.ReplaceAll(p.Ignore, ",", " ") + "\n"
 	}
@@ -323,7 +323,7 @@ func regular(path string) error {
 			return e
 		}
 		if st.Mode()&os.ModeSymlink != 0 {
-			return errors.New("拒绝符号链接路径")
+			return errors.New("Symbolic link paths are not allowed")
 		}
 	}
 	return nil
@@ -349,7 +349,7 @@ func saveOperation(op Operation) error {
 func loadOperation(id string) (Operation, error) {
 	var op Operation
 	if len(id) != 32 {
-		return op, errors.New("操作编号无效")
+		return op, errors.New("Invalid operation ID")
 	}
 	if _, e := hex.DecodeString(id); e != nil {
 		return op, e
@@ -364,7 +364,7 @@ func loadOperation(id string) (Operation, error) {
 	}
 	e = json.Unmarshal(b, &op)
 	if op.ID != id {
-		return op, errors.New("操作记录无效")
+		return op, errors.New("Invalid operation record")
 	}
 	return op, e
 }
@@ -379,7 +379,7 @@ func rollback(ctx context.Context, id string, automatic bool) error {
 	}
 	for _, f := range op.Files {
 		if f.Path != sshFile && f.Path != jailFile {
-			return errors.New("备份路径不允许")
+			return errors.New("Backup path is not allowed")
 		}
 		if e = regular(f.Path); e != nil {
 			return e
@@ -438,15 +438,15 @@ func rollback(ctx context.Context, id string, automatic bool) error {
 }
 func apply(ctx context.Context, p Plan, m map[string]string, w io.Writer) (err error) {
 	if os.Geteuid() != 0 {
-		return errors.New("必须通过 sudo 运行")
+		return errors.New("Run through sudo")
 	}
 	release, e := os.ReadFile("/etc/os-release")
 	if e != nil || !strings.Contains(string(release), "ID=debian") || !strings.Contains(string(release), "VERSION_ID=\"12\"") {
-		return errors.New("目前仅验证 Debian 12")
+		return errors.New("Only Debian 12 has been verified")
 	}
 	if _, ok := p.Files[sshFile]; ok {
 		if m["persourcemaxstartups"] == "" {
-			return errors.New("当前 OpenSSH 不支持 PerSourceMaxStartups")
+			return errors.New("The current SSH service does not support PerSourceMaxStartups")
 		}
 		if _, e = command(ctx, sshd(), "-t"); e != nil {
 			return e
@@ -462,7 +462,7 @@ func apply(ctx context.Context, p Plan, m map[string]string, w io.Writer) (err e
 	}
 	op.ID = hex.EncodeToString(raw)
 	if _, e = command(ctx, "systemctl", "is-active", "--quiet", "ssh"); e != nil {
-		return errors.New("ssh 服务不可验证")
+		return errors.New("SSH service could not be verified")
 	}
 	_, e = command(ctx, "systemctl", "is-active", "--quiet", "fail2ban")
 	op.FailActive = e == nil
@@ -475,7 +475,7 @@ func apply(ctx context.Context, p Plan, m map[string]string, w io.Writer) (err e
 		f := FileBackup{Path: path}
 		if st, e := os.Stat(path); e == nil {
 			if !st.Mode().IsRegular() {
-				return errors.New("配置不是普通文件")
+				return errors.New("Configuration is not a regular file")
 			}
 			f.Exists = true
 			f.Mode = uint32(st.Mode().Perm())
@@ -508,7 +508,7 @@ func apply(ctx context.Context, p Plan, m map[string]string, w io.Writer) (err e
 		if err != nil {
 			re := rollback(context.Background(), op.ID, true)
 			if re != nil {
-				err = fmt.Errorf("%v；自动回滚失败，请通过带外渠道处理", err)
+				err = fmt.Errorf("%v; automatic rollback failed; use out-of-band access", err)
 			}
 		}
 	}()
@@ -522,7 +522,7 @@ func apply(ctx context.Context, p Plan, m map[string]string, w io.Writer) (err e
 				cmd.Stdout = w
 				cmd.Stderr = w
 				if e = cmd.Run(); e != nil {
-					return errors.New("登录防护组件索引更新或安装失败")
+					return errors.New("Login protection package index update or installation failed")
 				}
 			}
 		}
@@ -547,7 +547,7 @@ func apply(ctx context.Context, p Plan, m map[string]string, w io.Writer) (err e
 			return e
 		}
 		if actual["persourcemaxstartups"] != p.PerSource || actual["logingracetime"] != p.Grace || p.DisablePassword && (actual["passwordauthentication"] != "no" || actual["kbdinteractiveauthentication"] != "no") || p.Root != "keep" && actual["permitrootlogin"] != p.Root {
-			return errors.New("配置未实际生效，可能存在 Include/Match 优先级冲突")
+			return errors.New("Configuration did not take effect; check Include/Match precedence conflicts")
 		}
 		if _, e = command(ctx, "systemctl", "reload", "ssh"); e != nil {
 			return e
@@ -571,7 +571,7 @@ func apply(ctx context.Context, p Plan, m map[string]string, w io.Writer) (err e
 			select {
 			case <-ready.Done():
 				cancel()
-				return errors.New("登录防护规则未在预算内就绪")
+				return errors.New("Login protection rules were not ready within the time budget")
 			case <-time.After(200 * time.Millisecond):
 			}
 		}
@@ -584,15 +584,15 @@ func apply(ctx context.Context, p Plan, m map[string]string, w io.Writer) (err e
 		for key, value := range expected {
 			actual, e := command(ctx, "fail2ban-client", "get", "sshd", key)
 			if e != nil || strings.TrimSpace(actual) != value {
-				return errors.New("登录防护参数未实际生效")
+				return errors.New("Login protection parameters did not take effect")
 			}
 		}
 	}
 	started, _ := time.Parse(time.RFC3339, op.Started)
 	if time.Since(started) >= 5*time.Minute {
-		return errors.New("操作超过确认期限，正在回滚")
+		return errors.New("Confirmation deadline exceeded; rolling back")
 	}
-	fmt.Fprintf(w, "已应用。请在第二个 SSH 会话执行：sudo %s harden confirm %s\n五分钟内未确认将自动回滚。\n", exe, op.ID)
+	fmt.Fprintf(w, "Applied. In a second SSH session run: sudo %s harden confirm %s\nAutomatic rollback occurs if not confirmed within five minutes.\n", exe, op.ID)
 	return nil
 }
 
@@ -600,7 +600,7 @@ func apply(ctx context.Context, p Plan, m map[string]string, w io.Writer) (err e
 func Run(args []string, in io.Reader, out io.Writer) int {
 	ctx := context.Background()
 	if runtime.GOOS != "linux" {
-		fmt.Fprintln(out, "主机加固目前仅支持 Debian 12 Linux")
+		fmt.Fprintln(out, "Host hardening currently supports Debian 12 Linux only")
 		return 2
 	}
 	if len(args) == 0 {
@@ -629,7 +629,7 @@ func Run(args []string, in io.Reader, out io.Writer) int {
 		}
 		automatic := len(args) == 3 && args[0] == "rollback" && args[2] == "--automatic"
 		if os.Geteuid() != 0 || (len(args) != 2 && !automatic) {
-			fmt.Fprintln(out, "需要 root 与操作编号")
+			fmt.Fprintln(out, "Root privileges and an operation ID are required")
 			return 2
 		}
 		release, e := lock()
@@ -642,7 +642,7 @@ func Run(args []string, in io.Reader, out io.Writer) int {
 			if !automatic {
 				latest, e := latestOperation()
 				if e != nil || latest != args[1] {
-					fmt.Fprintln(out, "请先回滚最近的未回滚操作")
+					fmt.Fprintln(out, "Roll back the latest pending operation first")
 					return 1
 				}
 			}
@@ -650,7 +650,7 @@ func Run(args []string, in io.Reader, out io.Writer) int {
 				fmt.Fprintln(out, e)
 				return 1
 			}
-			fmt.Fprintln(out, "已回滚")
+			fmt.Fprintln(out, "Rolled back")
 			return 0
 		}
 		op, e := loadOperation(args[1])
@@ -659,16 +659,16 @@ func Run(args []string, in io.Reader, out io.Writer) int {
 			return 1
 		}
 		if op.RolledBack {
-			fmt.Fprintln(out, "已回滚，不能确认")
+			fmt.Fprintln(out, "Already rolled back; confirmation is not allowed")
 			return 1
 		}
 		if source() == "" || os.Getenv("SSH_CONNECTION") == op.Source {
-			fmt.Fprintln(out, "请通过第二个 SSH 管理会话确认")
+			fmt.Fprintln(out, "Confirm through a second SSH management session")
 			return 1
 		}
 		started, e := time.Parse(time.RFC3339, op.Started)
 		if e != nil || time.Since(started) >= 5*time.Minute {
-			fmt.Fprintln(out, "确认已超时")
+			fmt.Fprintln(out, "Confirmation timed out")
 			return 1
 		}
 		op.Confirmed = true
@@ -677,7 +677,7 @@ func Run(args []string, in io.Reader, out io.Writer) int {
 			return 1
 		}
 		_, _ = command(ctx, "systemctl", "stop", timerUnit(op.ID)+".timer")
-		fmt.Fprintln(out, "已确认")
+		fmt.Fprintln(out, "Confirmed")
 		return 0
 	}
 	if args[0] != "ssh" && args[0] != "fail2ban" {
@@ -688,12 +688,12 @@ func Run(args []string, in io.Reader, out io.Writer) int {
 		return 2
 	}
 	if !dry && os.Geteuid() != 0 {
-		fmt.Fprintln(out, "请使用 sudo；只读预览可用 --dry-run")
+		fmt.Fprintln(out, "Use sudo; read-only preview is available with --dry-run")
 		return 1
 	}
 	m, e := settings(ctx)
 	if e != nil && !dry {
-		fmt.Fprintln(out, "无法验证 SSH 服务配置")
+		fmt.Fprintln(out, "Unable to verify SSH service configuration")
 		return 1
 	}
 	if text, err := command(ctx, "fail2ban-client", "get", "sshd", "ignoreip"); err == nil {
@@ -717,19 +717,19 @@ func Run(args []string, in io.Reader, out io.Writer) int {
 	for path, text := range p.Files {
 		fmt.Fprintf(out, "\n%s\n%s", path, text)
 	}
-	fmt.Fprintln(out, "不会修改主机防火墙配置。登录防护不会识别隧道背后的原始公网来源。")
+	fmt.Fprintln(out, "Host firewall configuration remains unchanged. Login protection cannot identify original public visitors behind the tunnel.")
 	if dry {
-		fmt.Fprintln(out, "dry-run：未应用任何变更")
+		fmt.Fprintln(out, "Dry run: no changes applied")
 		return 0
 	}
 	for path := range p.Files {
 		if _, e := os.Stat(path); e == nil {
-			fmt.Fprintf(out, "将替换已有专属配置：%s（变更前备份）\n", path)
+			fmt.Fprintf(out, "Existing dedicated configuration will be replaced: %s (backed up first)\n", path)
 		}
 	}
-	yes, e := prompt(r, out, "确认有第二 SSH/带外管理渠道，输入 YES 执行", "NO")
+	yes, e := prompt(r, out, "Confirm a second SSH/out-of-band access path; type YES to apply", "NO")
 	if e != nil || yes != "YES" {
-		fmt.Fprintln(out, "已取消，未应用配置")
+		fmt.Fprintln(out, "Cancelled; no configuration applied")
 		return 0
 	}
 	release, e := lock()
@@ -745,7 +745,7 @@ func Run(args []string, in io.Reader, out io.Writer) int {
 			return 1
 		}
 		if !op.Confirmed && !op.RolledBack {
-			fmt.Fprintln(out, "请先确认或回滚上一次操作")
+			fmt.Fprintln(out, "Confirm or roll back the previous operation first")
 			return 1
 		}
 	}
@@ -766,7 +766,7 @@ func managementUser() string {
 func latestOperation() (string, error) {
 	entries, e := os.ReadDir(base)
 	if e != nil {
-		return "", errors.New("没有可回滚的操作")
+		return "", errors.New("No operation is available for rollback")
 	}
 	type item struct {
 		id      string
@@ -784,7 +784,7 @@ func latestOperation() (string, error) {
 	}
 	sort.Slice(items, func(i, j int) bool { return items[i].started > items[j].started })
 	if len(items) == 0 {
-		return "", errors.New("没有可回滚的操作")
+		return "", errors.New("No operation is available for rollback")
 	}
 	return items[0].id, nil
 }
@@ -793,11 +793,11 @@ func latestOperation() (string, error) {
 func (c Check) Label() string {
 	switch c.Name {
 	case "fail2ban":
-		return "登录防护"
+		return "Login protection"
 	case "sshd":
-		return "SSH 服务"
+		return "SSH service"
 	case "sshd_listener":
-		return "SSH 监听"
+		return "SSH listener"
 	}
 	return c.Name
 }

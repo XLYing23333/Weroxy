@@ -39,14 +39,14 @@ REQUIRED = {'manage', 'BUILD.json', 'README.md', 'README-CN.md', 'LICENSE', 'THI
 def ordinary_file(base, name):
     parts = pathlib.PurePosixPath(name)
     if parts.is_absolute() or any(part in ('', '.', '..') for part in name.split('/')):
-        raise RuntimeError('Unsafe release path / 发布包路径不合法')
+        raise RuntimeError("Unsafe release path")
     path = base
     for part in parts.parts:
         path = path / part
         if path.is_symlink():
-            raise RuntimeError('Release symlinks are not allowed / 发布包不能包含符号链接')
+            raise RuntimeError("Release symlinks are not allowed")
     if not path.is_file():
-        raise RuntimeError('Missing release file / 发布包文件缺失: ' + name)
+        raise RuntimeError("Missing release file: " + name)
     return path
 
 
@@ -61,40 +61,40 @@ def checksum(path):
 def verify(package=PACKAGE):
     package = pathlib.Path(package).absolute()
     if package.is_symlink() or not package.is_dir():
-        raise RuntimeError('An ordinary extracted package directory is required / 请提供已解压的普通目录')
+        raise RuntimeError("An ordinary extracted package directory is required")
     manifest = ordinary_file(package, 'SHA256SUMS')
     if manifest.stat().st_size > 65536:
-        raise RuntimeError('Release manifest too large / 校验清单过大')
+        raise RuntimeError("Release manifest too large")
     names = set()
     for row in manifest.read_text().splitlines():
         match = re.fullmatch(r'([0-9a-f]{64})  ([^\r\n]+)', row)
         if not match or match[2] in names or len(names) >= 64:
-            raise RuntimeError('Invalid release manifest / 校验清单无效')
+            raise RuntimeError("Invalid release manifest")
         digest, name = match.groups()
         path = ordinary_file(package, name)
         if checksum(path) != digest:
-            raise RuntimeError('SHA-256 mismatch / SHA-256 不匹配: ' + name)
+            raise RuntimeError("SHA-256 mismatch: " + name)
         names.add(name)
     if not REQUIRED <= names:
-        raise RuntimeError('Incomplete release manifest / 校验清单不完整')
+        raise RuntimeError("Incomplete release manifest")
     build = json.loads(ordinary_file(package, 'BUILD.json').read_text())
     version = build.get('version', '')
     if not re.fullmatch(r'[0-9]+\.[0-9]+\.[0-9]+(?:[-+][A-Za-z0-9.-]+)?', version):
-        raise RuntimeError('Invalid release version / 发布版本无效')
+        raise RuntimeError("Invalid release version")
     arch = {'x86_64': 'amd64', 'aarch64': 'arm64'}.get(platform.machine())
     if build.get('architecture') != 'linux/' + str(arch):
-        raise RuntimeError('Release architecture differs from host / 发布包架构与宿主机不同')
+        raise RuntimeError("Release architecture differs from host")
     image = build.get('image_config_digest', '')
     if not re.fullmatch(r'sha256:[0-9a-f]{64}', image):
-        raise RuntimeError('Invalid image identity / 镜像标识无效')
+        raise RuntimeError("Invalid image identity")
     archive = build.get('image_archive', 'weroxy-server_' + version + '_linux_' + str(arch) + '.docker.tar')
     if archive not in names or not archive.endswith('.docker.tar'):
-        raise RuntimeError('Image missing from release manifest / 校验清单缺少镜像')
+        raise RuntimeError("Image missing from release manifest")
     build['image_archive'] = archive
     # Ignore runtime files outside this allowlist; all distributed code is checked.
     allowed = REQUIRED | {'SOURCE_SHA256SUMS', archive}
     if not names <= allowed:
-        raise RuntimeError('Unexpected release files / 发布包包含不支持的文件')
+        raise RuntimeError("Unexpected release files")
     return build
 
 
@@ -120,7 +120,7 @@ def secure_release_permissions(package=None):
     """Repair only a verified standalone release, never source or live data."""
     package = pathlib.Path(package or PACKAGE).absolute()
     if os.geteuid() != 0:
-        raise RuntimeError('Run sudo ./manage / 请使用 sudo ./manage')
+        raise RuntimeError("Run sudo ./manage")
     verify(package)
     # Never chown a home/source parent. A writable ancestor would allow the
     # root-managed deployment to be replaced after this check.
@@ -166,35 +166,35 @@ def secure_release_permissions(package=None):
 
 def prerequisites(network=True):
     if os.geteuid() != 0:
-        raise RuntimeError('Run sudo ./manage / 请使用 sudo ./manage')
+        raise RuntimeError("Run sudo ./manage")
     if sys.version_info < (3, 10):
-        raise RuntimeError('Python 3.10+ required / 需要 Python 3.10 或以上')
+        raise RuntimeError("Python 3.10+ required")
     for name in ('docker', 'systemctl', 'ss'):
         if not shutil.which(name):
-            raise RuntimeError('Missing host capability; see README / 缺少主机组件，请参阅 README: ' + {'docker': 'container runtime', 'systemctl': 'service manager', 'ss': 'port inspection'}[name])
+            raise RuntimeError("Missing host capability; see README: " + {'docker': 'container runtime', 'systemctl': 'service manager', 'ss': 'port inspection'}[name])
     try:
         core.command(['docker', 'info'], capture=True, timeout=20)
     except subprocess.SubprocessError:
-        raise RuntimeError('Container runtime unavailable; see README / 容器运行环境不可用，请参阅 README') from None
+        raise RuntimeError("Container runtime unavailable; see README") from None
     try:
         core.command(['docker', 'compose', 'version'], capture=True, timeout=10)
     except subprocess.SubprocessError:
-        raise RuntimeError('Install the required container orchestration plugin; see README / 请参阅 README 安装容器编排组件') from None
+        raise RuntimeError("Install the required container orchestration plugin; see README") from None
     try:
         core.command(['systemctl', 'show', '--property=Version'], capture=True, timeout=10)
     except subprocess.SubprocessError:
-        raise RuntimeError('A running system service manager is required / 需要运行系统服务管理器的宿主机') from None
+        raise RuntimeError("A running system service manager is required") from None
     if network:
         core.port_plan.check_firewall()
     # Automatic host integration must not be writable by the Server user.
     for path in (PACKAGE, ROOT):
         info = path.stat()
         if info.st_uid != 0 or info.st_mode & 0o022:
-            raise RuntimeError('Deployment directory is unsafe: ' + str(path) + '; use a verified release under /opt/weroxy / 请将正式发布包解压到 /opt/weroxy')
+            raise RuntimeError('Deployment directory is unsafe: ' + str(path) + "; use a verified release under /opt/weroxy")
     if os.environ.get('COMPOSE_FILE', 'compose.yaml') not in ('compose.yaml',):
-        raise RuntimeError('Managed deployment requires COMPOSE_FILE=compose.yaml / 请移除直接发布的 Compose 覆盖配置')
+        raise RuntimeError("Managed deployment requires COMPOSE_FILE=compose.yaml")
     if (ROOT / '.env').exists():
-        raise RuntimeError('Remove legacy .env before managed installation / 请先归档旧的 .env，避免覆盖管理配置')
+        raise RuntimeError("Remove legacy .env before managed installation")
 
 
 def invoke(action, *args):
@@ -207,23 +207,23 @@ def archive_identity(package, build):
     with tarfile.open(package / build['image_archive']) as archive:
         def read(name, limit):
             if pathlib.PurePosixPath(name).is_absolute() or '..' in pathlib.PurePosixPath(name).parts:
-                raise RuntimeError('Unsafe image archive / 镜像归档路径不合法')
+                raise RuntimeError("Unsafe image archive")
             member = archive.getmember(name)
             if not member.isfile() or member.size > limit:
-                raise RuntimeError('Invalid image metadata / 镜像元数据无效')
+                raise RuntimeError("Invalid image metadata")
             return archive.extractfile(member).read()
         manifest = json.loads(read('manifest.json', 65536))
         if len(manifest) != 1:
-            raise RuntimeError('Exactly one release image required / 发布包须包含单个镜像')
+            raise RuntimeError("Exactly one release image required")
         config_bytes = read(manifest[0]['Config'], 1024 * 1024)
         if 'sha256:' + hashlib.sha256(config_bytes).hexdigest() != build['image_config_digest']:
-            raise RuntimeError('Archive config identity differs / 归档 config 摘要与构建记录不同')
+            raise RuntimeError("Archive config identity differs")
         config = json.loads(config_bytes)
         if config['architecture'] != build['architecture'].split('/')[1]:
-            raise RuntimeError('Archive architecture differs / 镜像归档架构不符')
+            raise RuntimeError("Archive architecture differs")
         tags = manifest[0].get('RepoTags') or []
         if not tags or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9./:_-]{0,255}', tags[0]):
-            raise RuntimeError('Invalid archive image tag / 镜像归档标签无效')
+            raise RuntimeError("Invalid archive image tag")
         return tags[0], config
 
 
@@ -238,7 +238,7 @@ def load_image(package, build):
     if (info['Id'] not in identities or info['Architecture'] != config['architecture']
             or info['RootFS']['Layers'] != config['rootfs']['diff_ids']
             or any(info['Config'].get(key) != value for key, value in config['config'].items())):
-        raise RuntimeError('Imported image identity differs / 导入镜像标识不符')
+        raise RuntimeError("Imported image identity differs")
     return info['Id']
 
 
@@ -350,10 +350,10 @@ def lifecycle_lock():
                 break
             except BlockingIOError:
                 if not announced:
-                    print('Waiting for current host task / 等待当前宿主机任务安全完成', flush=True)
+                    print("Waiting for current host task", flush=True)
                     announced = True
                 if time.monotonic() >= deadline:
-                    raise RuntimeError('Host task still busy; retry later / 宿主机任务仍忙，请稍后重试')
+                    raise RuntimeError("Host task still busy; retry later")
                 time.sleep(.1)
         LOCK_FD = lock.fileno()
         try:
@@ -416,9 +416,9 @@ def uninstall():
 
 def reset_password(username, password=None):
     if not re.fullmatch(r'[A-Za-z0-9_.-]{1,64}', username or ''):
-        raise RuntimeError('Invalid username / 用户名无效')
+        raise RuntimeError('Invalid username')
     if password is None and not sys.stdin.isatty():
-        raise RuntimeError('Password reset requires a terminal / 重置密码需要终端')
+        raise RuntimeError('Password reset requires a terminal')
     if password is None:
         password = getpass.getpass('New password: ')
     raw = password.encode()
@@ -455,7 +455,7 @@ def execute(action, args):
         return
     if (PACKAGE / 'BUILD.json').is_file() and (PACKAGE / 'manage').is_file():
         if secure_release_permissions():
-            print('Release permissions repaired automatically / 发布包权限已自动修正', flush=True)
+            print('Release permissions repaired automatically', flush=True)
     if action != 'install':
         prerequisites(network=action in ('start', 'restart'))
     with (ROOT / '.manage.lock').open('a') as lock:
@@ -548,9 +548,9 @@ if __name__ == '__main__':
     try:
         main()
     except KeyboardInterrupt:
-        print('\nCancelled / 已取消', file=sys.stderr)
+        print('\nCancelled', file=sys.stderr)
         raise SystemExit(130)
     except (OSError, RuntimeError, ValueError, KeyError, tarfile.TarError, sqlite3.Error, subprocess.SubprocessError) as error:
         # No subprocess output or sensitive application data in error reports.
-        print(str(error) if isinstance(error, RuntimeError) else 'Operation failed / 操作失败: ' + type(error).__name__, file=sys.stderr)
+        print(str(error) if isinstance(error, RuntimeError) else 'Operation failed: ' + type(error).__name__, file=sys.stderr)
         raise SystemExit(1)

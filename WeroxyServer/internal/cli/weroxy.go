@@ -62,7 +62,7 @@ func addWeroxyDevice(args []string, opt Option) int {
 		return 2
 	}
 	if !validUsername(name) {
-		fmt.Fprintln(opt.Stderr, "设备名无效。")
+		fmt.Fprintln(opt.Stderr, "Invalid device name.")
 		return 2
 	}
 	if err := server.Writable(data); err != nil {
@@ -71,17 +71,17 @@ func addWeroxyDevice(args []string, opt Option) int {
 	}
 	secret, err := legacy.LoadSecret(data, true)
 	if err != nil {
-		fmt.Fprintln(opt.Stderr, "未能准备本机校验密钥。")
+		fmt.Fprintln(opt.Stderr, "Unable to prepare the local verification secret.")
 		return 1
 	}
 	var raw [32]byte
 	if _, err := rand.Read(raw[:]); err != nil {
-		fmt.Fprintln(opt.Stderr, "未能生成 Token。")
+		fmt.Fprintln(opt.Stderr, "Unable to generate Token.")
 		return 1
 	}
 	var uidRaw [16]byte
 	if _, err := rand.Read(uidRaw[:]); err != nil {
-		fmt.Fprintln(opt.Stderr, "未能生成设备 ID。")
+		fmt.Fprintln(opt.Stderr, "Unable to generate device ID.")
 		return 1
 	}
 	token := hex.EncodeToString(raw[:])
@@ -103,7 +103,7 @@ func addWeroxyDevice(args []string, opt Option) int {
 	}
 	_ = db.RecordAudit(ctx, "weroxy_device_add", "success", name)
 	log.Info("weroxy device added", map[string]string{"device": name})
-	fmt.Fprintf(opt.Stdout, "device_id: %s\ntoken: %s\n管理页可以再次查看并复制这个 token。\n", uid, token)
+	fmt.Fprintf(opt.Stdout, "device_id: %s\ntoken: %s\nThe management page can display and copy this token again.\n", uid, token)
 	return 0
 }
 
@@ -134,12 +134,12 @@ func addWeroxyForward(args []string, opt Option) int {
 	}
 	listen, err = canonicalAddr(listen)
 	if err != nil {
-		fmt.Fprintln(opt.Stderr, "监听地址无效。")
+		fmt.Fprintln(opt.Stderr, "Invalid listener address.")
 		return 2
 	}
 	target, err = canonicalAddr(target)
 	if err != nil {
-		fmt.Fprintln(opt.Stderr, "目标地址无效。")
+		fmt.Fprintln(opt.Stderr, "Invalid target address.")
 		return 2
 	}
 	if err := server.Writable(data); err != nil {
@@ -171,7 +171,7 @@ func addWeroxyForward(args []string, opt Option) int {
 			maxPorts, err = requiredInt(args, "max")
 		}
 		if err != nil {
-			fmt.Fprintln(opt.Stderr, "端口数量无效。")
+			fmt.Fprintln(opt.Stderr, "Invalid port count.")
 			return 2
 		}
 	}
@@ -181,7 +181,7 @@ func addWeroxyForward(args []string, opt Option) int {
 	}
 	_ = db.RecordAudit(ctx, "weroxy_forward_add", "success", device)
 	log.Info("weroxy forward added", map[string]string{"device": device, "listen": listen})
-	fmt.Fprintln(opt.Stdout, "已添加转发。")
+	fmt.Fprintln(opt.Stdout, "Forward added.")
 	return 0
 }
 
@@ -217,32 +217,32 @@ func revokeWeroxyDevice(args []string, opt Option) int {
 	}
 	_ = db.RecordAudit(ctx, "weroxy_device_revoke", "success", name)
 	log.Info("weroxy device revoked", map[string]string{"device": name})
-	fmt.Fprintln(opt.Stdout, "已吊销设备。正在运行的服务会在下一次检查时断开它的连接。")
+	fmt.Fprintln(opt.Stdout, "Device revoked. The running service will disconnect it at the next check.")
 	return 0
 }
 
 func weroxyStoreError(err error) string {
 	switch {
 	case errors.Is(err, sqlite.ErrWeroxyExists):
-		return "设备已存在，未保存。"
+		return "Device already exists; nothing saved."
 	case errors.Is(err, sqlite.ErrWeroxyNotFound):
-		return "设备不存在。"
+		return "Device not found."
 	case errors.Is(err, sqlite.ErrWeroxyListen):
-		return "监听地址已被占用。"
+		return "Listener address is occupied."
 	case errors.Is(err, sqlite.ErrWeroxyRevoked):
-		return "设备已吊销，不能添加转发。"
+		return "Device revoked; cannot add a forward."
 	case errors.Is(err, sqlite.ErrWeroxyLimit):
-		return "这台设备已经有一条转发。"
+		return "This device already has a forward."
 	case errors.Is(err, sqlite.ErrPortConflict):
-		return "监听地址与已有端口冲突。"
+		return "Listener conflicts with an existing port."
 	case errors.Is(err, sqlite.ErrPortRange):
-		return "端口范围或限额无效。"
+		return "Invalid port range or quota."
 	case errors.Is(err, sqlite.ErrPortQuota):
-		return "数据端口额度不足，未保存这条转发。"
+		return "Insufficient data port quota; forward not saved."
 	case errors.Is(err, sqlite.ErrPolicyLooser):
-		return "这条策略比上一级更松，未保存。"
+		return "Policy is less restrictive than its parent; nothing saved."
 	default:
-		return "未能保存 Weroxy 配置。"
+		return "Unable to save Weroxy configuration."
 	}
 }
 
@@ -259,12 +259,12 @@ func rotateWeroxyDevice(args []string, opt Option) int {
 		return 2
 	}
 	if err := server.Writable(data); err != nil {
-		fmt.Fprintln(opt.Stderr, "数据目录不可写。")
+		fmt.Fprintln(opt.Stderr, "Data directory is not writable.")
 		return 1
 	}
 	secret, err := legacy.LoadSecret(data, false)
 	if err != nil {
-		fmt.Fprintln(opt.Stderr, "无法读取本机校验密钥。")
+		fmt.Fprintln(opt.Stderr, "Unable to read the local verification secret.")
 		return 1
 	}
 	var raw [32]byte

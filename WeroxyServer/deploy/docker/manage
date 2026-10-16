@@ -2,7 +2,7 @@
 set -eu
 base=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 if ! command -v python3 >/dev/null 2>&1; then
-  printf '%s\n' 'Python 3.10+ is required. / 请先安装 Python 3.10 或以上。' >&2
+  printf '%s\n' "Python 3.10+ is required." >&2
   exit 1
 fi
 if [ -f "$base/deploy/console.py" ]; then

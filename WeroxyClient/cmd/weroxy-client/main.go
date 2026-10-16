@@ -39,7 +39,7 @@ func main() {
 func run(args []string) int {
 	for _, arg := range args {
 		if arg == "--key" || strings.HasPrefix(arg, "--key=") || arg == "--token" || strings.HasPrefix(arg, "--token=") {
-			fmt.Fprintln(os.Stderr, "已拒绝在命令参数中提供 Key 或 Token。")
+			fmt.Fprintln(os.Stderr, "Key or Token must not be supplied in command arguments.")
 			return 2
 		}
 	}
@@ -85,9 +85,9 @@ func run(args []string) int {
 			err = config.EnsureUserProfile(path)
 		}
 		if err != nil {
-			fmt.Fprintln(os.Stderr, "用户配置需要修复，请使用 profile：", err)
+			fmt.Fprintln(os.Stderr, "The user profile needs repair; use profile:", err)
 		}
-		fmt.Fprintln(os.Stdout, "用户配置：", path)
+		fmt.Fprintln(os.Stdout, "User profile: ", path)
 		return 0
 	case "init":
 		return runInit(args[1:])
@@ -128,15 +128,15 @@ func runInit(args []string) int {
 	}
 	token, err := config.ReadToken(commandStdin)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "未能读取 token。")
+		fmt.Fprintln(os.Stderr, "Unable to read the token.")
 		return 2
 	}
 	defer zero(token)
 	if err := config.Save(path, host, hex.EncodeToString(token), port); err != nil {
-		fmt.Fprintln(os.Stderr, "配置未保存：", err)
+		fmt.Fprintln(os.Stderr, "Profile not saved: ", err)
 		return 1
 	}
-	fmt.Fprintln(os.Stdout, "配置已保存；在 Server Web 设置转发后启动 Client。")
+	fmt.Fprintln(os.Stdout, "Profile saved. Configure forwards in Server Web, then start Client.")
 	return 0
 }
 
@@ -152,7 +152,7 @@ func runTunnel(args []string) int {
 	}
 	cfg, err := config.Load(path)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "配置错误：", err)
+		fmt.Fprintln(os.Stderr, "Configuration error: ", err)
 		return 2
 	}
 	var token []byte
@@ -162,7 +162,7 @@ func runTunnel(args []string) int {
 		token, err = config.ReadToken(strings.NewReader(cfg.Key))
 	}
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "未能读取 token。")
+		fmt.Fprintln(os.Stderr, "Unable to read the token.")
 		return 2
 	}
 	defer zero(token)
@@ -171,11 +171,11 @@ func runTunnel(args []string) int {
 	err = clientservice.Run(ctx, tunnel.Options{Config: cfg, Token: token, StatusPath: status.Path(path)})
 	zero(token)
 	if errors.Is(err, tunnel.ErrRejected) {
-		fmt.Fprintln(os.Stderr, "凭据被拒绝，已停止重连。")
+		fmt.Fprintln(os.Stderr, "Credentials rejected; reconnection stopped.")
 		return 78 // EX_CONFIG: systemd must not restart rejected credentials.
 	}
 	if err != nil && !errors.Is(err, context.Canceled) {
-		fmt.Fprintln(os.Stderr, "连接失败；请通过 doctor 检查配置、端口及权限。")
+		fmt.Fprintln(os.Stderr, "Connection failed; use doctor to check configuration, ports and permissions.")
 		return 1
 	}
 	return 0
@@ -214,14 +214,14 @@ func runUpgrade(args []string) int {
 		}
 		return 0
 	}
-	fmt.Fprintln(os.Stdout, "升级会保留服务原有启停与自启状态；运行中服务将重启，现有连接可能中断。")
+	fmt.Fprintln(os.Stdout, "Upgrade preserves service and autostart states. A running service will restart and existing connections may be interrupted.")
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 	if err := upgrade.ApplyPackage(ctx, values["--package"], values["--sha256"], values["--version"], values["--config"], values["--previous-package"], values["--previous-sha256"]); err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
 		return 1
 	}
-	fmt.Fprintln(os.Stdout, "升级完成；已保留原服务启停状态。上一版安装包保存在 /var/cache/weroxy-client。")
+	fmt.Fprintln(os.Stdout, "Upgrade complete; service state preserved. The previous package is in /var/cache/weroxy-client.")
 	return 0
 }
 
@@ -243,7 +243,7 @@ func runStatus(args []string) int {
 		}
 	}
 	if path == "" {
-		fmt.Fprintln(os.Stderr, "配置路径不能为空。")
+		fmt.Fprintln(os.Stderr, "Configuration path must not be empty.")
 		return 2
 	}
 	snap, running := status.Read(status.Path(path))
@@ -258,18 +258,18 @@ func runStatus(args []string) int {
 	} else if !running {
 		if _, err := config.Load(path); err != nil {
 			if os.IsNotExist(err) {
-				fmt.Fprintln(os.Stdout, "尚未配置；请在菜单配置连接。")
+				fmt.Fprintln(os.Stdout, "Not configured; use the menu to set up the connection.")
 			} else {
-				fmt.Fprintln(os.Stdout, "配置无法读取；请检查配置路径、密钥文件和访问权限。")
+				fmt.Fprintln(os.Stdout, "Unable to read configuration; check its path, key file and permissions.")
 			}
 		}
-		fmt.Fprintln(os.Stdout, "客户端离线或当前用户无权读取受限运行状态；服务状态请查看 service status，连接问题请运行 doctor。")
+		fmt.Fprintln(os.Stdout, "Client is offline or its protected status is not readable. Use service status and doctor for diagnostics.")
 	} else {
 		state := status.StateText(snap.State)
 		if snap.Connected {
-			state = "已连接"
+			state = "Connected"
 		}
-		fmt.Fprintf(os.Stdout, "客户端运行中；控制连接: %s；上行: %d 字节；下行: %d 字节\n", state, snap.Up, snap.Down)
+		fmt.Fprintf(os.Stdout, "Client running; control: %s; upload: %d bytes; download: %d bytes\n", state, snap.Up, snap.Down)
 	}
 	if !running {
 		return 1
@@ -300,7 +300,7 @@ func runDoctor(args []string) int {
 	}
 	cfg, err := config.Load(path)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "未能读取受限配置。")
+		fmt.Fprintln(os.Stderr, "Unable to read the protected configuration.")
 		return 1
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
@@ -337,11 +337,11 @@ func runMenu(args []string) int {
 	if path == "" {
 		path, err = defaultMenuConfig()
 		if err != nil {
-			fmt.Fprintln(os.Stderr, "未能定位用户配置目录；请指定 --config。")
+			fmt.Fprintln(os.Stderr, "Unable to locate the user profile directory; specify --config.")
 			return 2
 		}
 		if err := config.EnsureUserProfile(path); err != nil {
-			fmt.Fprintln(os.Stderr, "用户配置需要修复，请使用 profile：", err)
+			fmt.Fprintln(os.Stderr, "The user profile needs repair; use profile:", err)
 		}
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
@@ -410,7 +410,7 @@ func initFlags(args []string) (path, host, port, cert string, err error) {
 		}
 	}
 	if !keyStdin {
-		return "", "", "", "", errors.New("init 需要 --key-stdin")
+		return "", "", "", "", errors.New("init requires --key-stdin")
 	}
 	return path, host, port, cert, nil
 }

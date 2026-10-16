@@ -136,7 +136,7 @@ func TestUninstallOrderAndFailure(t *testing.T) {
 func TestStatusIncludesRuntimeAndEnabled(t *testing.T) {
 	sys := &fakeSystem{active: "active", enabled: "disabled"}
 	lines := strings.Join(statusLines(t.Context(), Option{System: sys}), "\n")
-	for _, v := range []string{"系统：", "服务：active", "开机自启：disabled", "控制连接：未知"} {
+	for _, v := range []string{"System: ", "Service: active", "Autostart: disabled", "Control: unknown"} {
 		if !strings.Contains(lines, v) {
 			t.Fatal(lines)
 		}

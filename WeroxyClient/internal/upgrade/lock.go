@@ -11,7 +11,7 @@ func acquireLock(dest string) (func(), error) {
 	path := dest + ".upgrade-lock"
 	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
 	if err != nil {
-		return nil, errors.New("无法取得升级锁；请确认管理员权限；如有遗留锁，先检查升级进程及回滚文件")
+		return nil, errors.New("Unable to acquire upgrade lock; check privileges, upgrade processes and rollback files")
 	}
 	info, err := file.Stat()
 	if err != nil {

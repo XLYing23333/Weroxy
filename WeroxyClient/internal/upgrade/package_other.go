@@ -8,5 +8,5 @@ import (
 )
 
 func ApplyPackage(context.Context, string, string, string, string, string, string) error {
-	return errors.New("本轮原生安装包仅支持 Linux")
+	return errors.New("Native packages are currently supported only on Linux")
 }

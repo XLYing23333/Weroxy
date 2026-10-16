@@ -38,7 +38,7 @@ func addLegacyDevice(args []string, opt Option) int {
 		return 2
 	}
 	if !validUsername(name) {
-		fmt.Fprintln(opt.Stderr, "设备名无效。")
+		fmt.Fprintln(opt.Stderr, "Invalid device name.")
 		return 2
 	}
 	key, err := readKeyFile(keyPath)
@@ -53,7 +53,7 @@ func addLegacyDevice(args []string, opt Option) int {
 	}
 	secret, err := legacy.LoadSecret(data, true)
 	if err != nil {
-		fmt.Fprintln(opt.Stderr, "未能准备本机校验密钥。")
+		fmt.Fprintln(opt.Stderr, "Unable to prepare the local verification secret.")
 		return 1
 	}
 	mac := legacy.MAC(secret, key)
@@ -70,7 +70,7 @@ func addLegacyDevice(args []string, opt Option) int {
 	}
 	_ = db.RecordAudit(ctx, "legacy_device_add", "success", name)
 	log.Info("legacy device added", map[string]string{"device": name})
-	fmt.Fprintln(opt.Stdout, "已添加旧客户端设备。")
+	fmt.Fprintln(opt.Stdout, "Legacy device added.")
 	return 0
 }
 
@@ -101,12 +101,12 @@ func addLegacyForward(args []string, opt Option) int {
 	}
 	listen, err = canonicalAddr(listen)
 	if err != nil {
-		fmt.Fprintln(opt.Stderr, "监听地址无效。")
+		fmt.Fprintln(opt.Stderr, "Invalid listener address.")
 		return 2
 	}
 	target, err = canonicalAddr(target)
 	if err != nil {
-		fmt.Fprintln(opt.Stderr, "目标地址无效。")
+		fmt.Fprintln(opt.Stderr, "Invalid target address.")
 		return 2
 	}
 	if err := server.Writable(data); err != nil {
@@ -126,7 +126,7 @@ func addLegacyForward(args []string, opt Option) int {
 	}
 	_ = db.RecordAudit(ctx, "legacy_forward_add", "success", device)
 	log.Info("legacy forward added", map[string]string{"device": device, "listen": listen})
-	fmt.Fprintln(opt.Stdout, "已添加旧客户端转发。")
+	fmt.Fprintln(opt.Stdout, "Legacy forward added.")
 	return 0
 }
 
@@ -188,28 +188,28 @@ var (
 func keyError(err error) string {
 	switch {
 	case errors.Is(err, errEmptyKey):
-		return "Client Key 为空，未保存。"
+		return "Client Key is empty; nothing saved."
 	case errors.Is(err, errLongKey):
-		return "Client Key 超过 127 字节，旧客户端无法在一帧 URI 中发送，未保存。"
+		return "Client Key exceeds the Legacy URI limit of 127 bytes; nothing saved."
 	default:
-		return "未能读取 Client Key 文件。"
+		return "Unable to read the Client Key file."
 	}
 }
 
 func legacyStoreError(err error) string {
 	switch {
 	case errors.Is(err, sqlite.ErrLegacyExists):
-		return "设备或 Client Key 已存在，未保存。"
+		return "Device or Client Key already exists; nothing saved."
 	case errors.Is(err, sqlite.ErrLegacyNotFound):
-		return "设备不存在。"
+		return "Device not found."
 	case errors.Is(err, sqlite.ErrLegacyListen):
-		return "监听地址已被占用。"
+		return "Listener address is occupied."
 	case errors.Is(err, sqlite.ErrPortRange):
-		return "端口不在转发池或已保留的监听许可中，请明确配置转发池或迁移允许端口。"
+		return "Port is outside the forwarding pool or reserved listener permissions; configure an explicit pool or allowed migration ports."
 	case errors.Is(err, sqlite.ErrPortConflict):
-		return "监听地址与已有端口冲突。"
+		return "Listener conflicts with an existing port."
 	default:
-		return "未能保存旧客户端配置。"
+		return "Unable to save Legacy configuration."
 	}
 }
 
