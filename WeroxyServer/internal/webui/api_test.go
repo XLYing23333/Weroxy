@@ -85,6 +85,18 @@ func TestManagementSessionAndForwards(t *testing.T) {
 		t.Fatalf("devices status=%d", denied.StatusCode)
 	}
 
+	for _, route := range []struct{ method, path string }{{"GET", "/api/v1/update"}, {"POST", "/api/v1/update/check"}} {
+		req, _ := http.NewRequest(route.method, base+route.path, nil)
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		res.Body.Close()
+		if res.StatusCode != http.StatusUnauthorized {
+			t.Fatalf("update endpoint %s: %d", route.path, res.StatusCode)
+		}
+	}
+
 	loginReq, _ := http.NewRequest(http.MethodPost, base+"/api/v1/auth/login", strings.NewReader(`{"username":"admin","password":"correct-horse-1"}`))
 	loginReq.Header.Set("Content-Type", "application/json")
 	loginRes, err := http.DefaultClient.Do(loginReq)

@@ -1392,3 +1392,10 @@ html.dark .page {
 .unban-action.el-button {border-radius:8px;gap:6px;padding:5px 9px;height:30px;}
 .unban-action svg {width:14px;height:14px;fill:currentColor;}
 .status-tip .status-tip-count {font-size:15px;font-weight:600;color:var(--el-text-color-primary);}
+
+/* Keep table labels intact; table bodies scroll inside their own containers. */
+.el-table th.el-table__cell:not(.el-table-column--selection) .cell { white-space:nowrap; word-break:normal; overflow-wrap:normal; }
+.device-state-cell .cell { display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:6px; overflow:visible; }
+.device-state-cell .el-tag { margin:0 !important; flex:none; }
+.el-table { max-width:100%; }
+.update-card p { margin:8px 0; }

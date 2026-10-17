@@ -623,6 +623,14 @@ func listenLegacy(ctx context.Context, dataDir string, log *logging.Logger, db *
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
 		return nil, err
 	}
+	if errors.Is(err, os.ErrNotExist) {
+		// Empty installations must share a stable secret with devices added
+		// through Web after the listener has already started.
+		secret, err = legacy.LoadSecret(dataDir, true)
+		if err != nil {
+			return nil, err
+		}
+	}
 	cached := make([]legacy.Device, len(devices))
 	for i, device := range devices {
 		cached[i] = legacy.Device{ID: device.ID, Name: device.Name, KeyMAC: device.KeyMAC, Paused: device.Paused}

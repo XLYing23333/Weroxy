@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Version-0.4.0-c4a574" alt="Version 0.4.0" />
+  <img src="https://img.shields.io/badge/Version-0.5.0-c4a574" alt="Version 0.5.0" />
   <img src="https://img.shields.io/badge/Go-1.27.1-00ADD8?logo=go&amp;logoColor=white" alt="Go 1.27.1" />
   <img src="https://img.shields.io/badge/Vue-3-4FC08D?logo=vuedotjs&amp;logoColor=white" alt="Vue 3" />
   <img src="https://img.shields.io/badge/Storage-SQLite-003B57?logo=sqlite&amp;logoColor=white" alt="SQLite storage" />
@@ -44,21 +44,21 @@ A lightweight TCP tunnel with a Go Server and Client, SQLite, and an embedded Vu
 | **WeroxyServer** | Docker image, deployment scripts, SHA-256 and build provenance | Linux amd64 |
 | **WeroxyClient** | Native deb / RPM / pacman packages | deb: amd64, arm64; RPM: x86_64, aarch64; pacman: x86_64 |
 
-The Server release is named `weroxy-server_0.4.0_linux_amd64.release.tar.gz` and includes the executable `manage` entry point, Docker image and deployment files. Download the package matching your host architecture, then follow the steps below.
+The Server release is named `weroxy-server_0.5.0_linux_amd64.release.tar.gz` and includes the executable `manage` entry point, Docker image and deployment files. Download the package matching your host architecture, then follow the steps below.
 
 The system package manager owns the Client program. Client releases provide deb, RPM and pacman packages. Client tar.gz bundles contain the matching deb and installation notes; no Windows release is provided.
 
 
-[GitHub repository](https://github.com/XLYing23333/Weroxy) · [v0.4.0 release](https://github.com/XLYing23333/Weroxy/releases/tag/v0.4.0)
+[GitHub repository](https://github.com/XLYing23333/Weroxy) · [v0.5.0 release](https://github.com/XLYing23333/Weroxy/releases/tag/v0.5.0)
 
 | Download | Platform |
 | :--- | :--- |
-| [Server](https://github.com/XLYing23333/Weroxy/releases/download/v0.4.0/weroxy-server_0.4.0_linux_amd64.release.tar.gz) | Linux amd64 |
-| [Client deb](https://github.com/XLYing23333/Weroxy/releases/download/v0.4.0/weroxy-client_0.4.0_amd64.deb) | Debian/Ubuntu amd64 |
-| [Client deb](https://github.com/XLYing23333/Weroxy/releases/download/v0.4.0/weroxy-client_0.4.0_arm64.deb) | Debian/Ubuntu arm64 |
-| [Client tar.gz](https://github.com/XLYing23333/Weroxy/releases/download/v0.4.0/weroxy-client_0.4.0_linux_amd64.tar.gz) | Linux amd64 (deb bundle) |
-| [Client tar.gz](https://github.com/XLYing23333/Weroxy/releases/download/v0.4.0/weroxy-client_0.4.0_linux_arm64.tar.gz) | Linux arm64 (deb bundle) |
-| [SHA-256](https://github.com/XLYing23333/Weroxy/releases/download/v0.4.0/SHA256SUMS) | All assets |
+| [Server](https://github.com/XLYing23333/Weroxy/releases/download/v0.5.0/weroxy-server_0.5.0_linux_amd64.release.tar.gz) | Linux amd64 |
+| [Client deb](https://github.com/XLYing23333/Weroxy/releases/download/v0.5.0/weroxy-client_0.5.0_amd64.deb) | Debian/Ubuntu amd64 |
+| [Client deb](https://github.com/XLYing23333/Weroxy/releases/download/v0.5.0/weroxy-client_0.5.0_arm64.deb) | Debian/Ubuntu arm64 |
+| [Client tar.gz](https://github.com/XLYing23333/Weroxy/releases/download/v0.5.0/weroxy-client_0.5.0_linux_amd64.tar.gz) | Linux amd64 (deb bundle) |
+| [Client tar.gz](https://github.com/XLYing23333/Weroxy/releases/download/v0.5.0/weroxy-client_0.5.0_linux_arm64.tar.gz) | Linux arm64 (deb bundle) |
+| [SHA-256](https://github.com/XLYing23333/Weroxy/releases/download/v0.5.0/SHA256SUMS) | All assets |
 
 ## Server installation
 
@@ -68,14 +68,14 @@ The prebuilt image is Linux amd64. **Extract the package and run `sudo ./manage`
 
 ```sh
 set -eu
-release=https://github.com/XLYing23333/Weroxy/releases/download/v0.4.0
+release=https://github.com/XLYing23333/Weroxy/releases/download/v0.5.0
 work=$(mktemp -d)
 cd "$work"
-wget "$release/weroxy-server_0.4.0_linux_amd64.release.tar.gz"
+wget "$release/weroxy-server_0.5.0_linux_amd64.release.tar.gz"
 wget "$release/SHA256SUMS"
-grep '  weroxy-server_0.4.0_linux_amd64.release.tar.gz$' SHA256SUMS | sha256sum -c -
+grep '  weroxy-server_0.5.0_linux_amd64.release.tar.gz$' SHA256SUMS | sha256sum -c -
 sudo install -d -m 700 /opt/weroxy
-sudo tar -xzf weroxy-server_0.4.0_linux_amd64.release.tar.gz -C /opt/weroxy
+sudo tar -xzf weroxy-server_0.5.0_linux_amd64.release.tar.gz -C /opt/weroxy
 sudo /opt/weroxy/manage
 ```
 
@@ -153,7 +153,7 @@ The manager rejects occupied entry ports and skips occupied pool ports, updating
 
 ## Upgrade and recovery
 
-Upgrade Server and Client together: 0.4.0 uses Weroxy v2 with embedded Noise and rejects old plaintext Weroxy connections without fallback. Control is encrypted throughout; Data is encrypted only during binding, then carries the original business stream. SSH retains its own encryption and host-key verification. Legacy remains plain 4900 and Web remains HTTP; no TLS, certificates or additional client is required.
+Upgrade Server and Client together: 0.5.0 uses Weroxy v2 with embedded Noise and rejects old plaintext Weroxy connections without fallback. Control is encrypted throughout; Data is encrypted only during binding, then carries the original business stream. SSH retains its own encryption and host-key verification. Legacy remains plain 4900 and Web remains HTTP; no TLS, certificates or additional client is required.
 
 Stop the service and privately back up the complete `deploy/data` directory and deployment configuration before upgrading. A SQLite-only backup does not contain all credential-encryption secrets. Do not run first installation against an existing database. See [deployment upgrade and recovery](WeroxyServer/deploy/docker/README.md#升级与恢复) for the underlying migration workflow. Retain previous packages for recovery.
 
@@ -163,12 +163,12 @@ For a forgotten password, choose Reset password or run `sudo /opt/weroxy/manage 
 
 ```sh
 set -eu
-release=https://github.com/XLYing23333/Weroxy/releases/download/v0.4.0
+release=https://github.com/XLYing23333/Weroxy/releases/download/v0.5.0
 arch=$(dpkg --print-architecture)
 case "$arch" in amd64|arm64) ;; *) echo "Unsupported architecture: $arch"; exit 1 ;; esac
 work=$(mktemp -d)
 cd "$work"
-pkg="weroxy-client_0.4.0_${arch}.deb"
+pkg="weroxy-client_0.5.0_${arch}.deb"
 wget "$release/$pkg"
 wget "$release/SHA256SUMS"
 grep "  $pkg\$" SHA256SUMS | sha256sum -c -
@@ -200,13 +200,13 @@ TUI **uninstall** stops the service, disables autostart, deletes the current use
 Use the Go version pinned in each module and Node.js 22/npm for Web builds. Runtime requires no Node.js, JRE or external database.
 
 ```sh
-VERSION=0.4.0 GO_BIN=/path/to/go WeroxyServer/deploy/build.sh
-docker build -f WeroxyServer/DockerFile --build-arg VERSION=0.4.0 -t weroxy-server:0.4.0 WeroxyServer
+VERSION=0.5.0 GO_BIN=/path/to/go WeroxyServer/deploy/build.sh
+docker build -f WeroxyServer/DockerFile --build-arg VERSION=0.5.0 -t weroxy-server:0.5.0 WeroxyServer
 ```
 
 Run `go test ./...` separately in Server and Client. In `WeroxyServer/web`, run `npm run typecheck`, `node --experimental-strip-types --test test/display.test.mjs`, and `npm run build`. Deployment tests: `python3 -m unittest discover -s WeroxyServer/deploy/docker -p 'test_*.py'`.
 
-## 0.4.0 transport and hardening
+## 0.5.0 transport and hardening
 
 - Noise protects the full Control connection and the Data binding handshake. After READY, business bytes retain their original protocol; SSH retains its own encryption and host-key verification.
 - Configuration remains Host, Port and Key. No TLS, certificates or additional client is required. Upgrade both components together; there is no fallback to the old plaintext Weroxy protocol.
@@ -268,8 +268,8 @@ See [inventory and upstream text gaps](legal/README.md). Check it offline with
 Copy the prompt below and fill in the host and component. Configure Host, Port and Key through the Client TUI afterward.
 
 ```text
-Install Weroxy v0.4.0 from https://github.com/XLYing23333/Weroxy.
-Release: https://github.com/XLYing23333/Weroxy/releases/tag/v0.4.0.
+Install Weroxy v0.5.0 from https://github.com/XLYing23333/Weroxy.
+Release: https://github.com/XLYing23333/Weroxy/releases/tag/v0.5.0.
 Target host: [SSH host or local]; component: [Server / Client].
 Read README.md and INSTALL_AGENT.md first. Inspect OS, architecture, existing Weroxy,
 occupied ports and other production services. Download matching release assets and verify
@@ -282,3 +282,9 @@ Never put keys, passwords or initialization URLs in argv, logs, reports or Git.
 Check versions, service status and doctor. Obtain separate authorization for autostart
 or SSH/fail2ban hardening. Report actual evidence and unverified items accurately.
 ```
+
+### Updates
+
+Choose **Update** in the Server or Client terminal manager to check the latest stable GitHub release. Confirm to download, verify SHA-256 and upgrade with a rollback backup. Connections restart during installation. Server Web Settings shows version reminders and a Release link; it does not install updates. Internet access to GitHub over HTTPS is needed only for checking and downloading updates.
+
+For an existing 0.4.0 installation, install 0.5.0 using the verified release package first; the new Update menu is available starting with 0.5.0. Server updates retain data and port mappings. Keep `.update-previous` and `deploy/rollback-data` until the upgrade has been verified; archive these backups before the next Server update.

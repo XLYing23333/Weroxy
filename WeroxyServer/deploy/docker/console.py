@@ -30,7 +30,7 @@ ROOT = pathlib.Path(__file__).resolve().parent
 PACKAGE = ROOT.parent
 LOCK_FD = None
 DEPLOY_FILES = ('compose.yaml', 'manage.py', 'console.py', 'tui.py', 'port_plan.py',
-                'refresh-publication.py', 'firewall.compose.yaml',
+                'refresh-publication.py', 'firewall.compose.yaml', 'update.py',
                 'weroxy-publication.service', 'README.md')
 REQUIRED = {'manage', 'BUILD.json', 'README.md', 'README-CN.md', 'LICENSE', 'THIRD_PARTY_NOTICES', 'assets/BarLOGO.png',
             *('deploy/' + name for name in DEPLOY_FILES)}
@@ -432,12 +432,15 @@ def reset_password(username, password=None):
     return result
 
 
-ACTIONS = ('install', 'start', 'stop', 'restart', 'status', 'reset-password', 'uninstall', 'notices')
+ACTIONS = ('install', 'start', 'stop', 'restart', 'status', 'reset-password', 'uninstall', 'notices', 'update')
 
 
 def execute(action, args):
     if action not in ACTIONS:
         raise RuntimeError('Unsupported management action: ' + action)
+    if action == 'update':
+        import update
+        return update.execute(sys.modules[__name__], args)
     if action == 'notices':
         with ordinary_file(PACKAGE, 'THIRD_PARTY_NOTICES').open(encoding='utf-8', newline='') as stream:
             text = stream.read()

@@ -99,6 +99,8 @@ func run(args []string) int {
 		return runDoctor(args[1:])
 	case "status":
 		return runStatus(args[1:])
+	case "update":
+		return runUpdate()
 	case "upgrade":
 		return runUpgrade(args[1:])
 	case "menu":
@@ -109,7 +111,7 @@ func run(args []string) int {
 		fmt.Fprintln(os.Stderr, "0.3.0: target authorization is managed in Server Web; allow was removed.")
 		return 2
 	default:
-		fmt.Fprintln(os.Stderr, "usage: weroxy-client version|notices|upgrade --package <path> --sha256 <hex> --version <version> [--config <path>]|status [--config <path>] [--json]|doctor --config <path> [--json]|init --config <path> --host <host> --key-stdin|run --config <path>|menu --config <path>|service <action> [--config <path>]")
+		fmt.Fprintln(os.Stderr, "usage: weroxy-client version|notices|update|upgrade --package <path> --sha256 <hex> --version <version> [--config <path>]|status [--config <path>] [--json]|doctor --config <path> [--json]|init --config <path> --host <host> --key-stdin|run --config <path>|menu --config <path>|service <action> [--config <path>]")
 		return 2
 	}
 }
@@ -348,6 +350,8 @@ func runMenu(args []string) int {
 	defer stop()
 	return menu.Run(ctx, menu.Option{ConfigPath: path, Action: func(action string, values []string) int {
 		switch action {
+		case "update":
+			return runUpdate()
 		case "harden":
 			return runHarden(values)
 		case "doctor":

@@ -21,8 +21,8 @@ def run(*args):
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--image',default='weroxy-server:0.4.0')
-    parser.add_argument('--output',default=str(REPO/'dist/server/0.4.0'))
+    parser.add_argument('--image',default='weroxy-server:0.5.0')
+    parser.add_argument('--output',default=str(REPO/'dist/server/0.5.0'))
     parser.add_argument('--runtime-build',required=True,help='metadata for the already-built image')
     parser.add_argument('--runtime-source-manifest',required=True)
     args=parser.parse_args()

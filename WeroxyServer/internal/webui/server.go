@@ -51,6 +51,7 @@ func Start(ctx context.Context, opt Options) (string, error) {
 	}
 	handler := &api{
 		db:            opt.DB,
+		updates:       &updateCache{},
 		firewall:      opt.Firewall,
 		log:           opt.Log,
 		hub:           opt.Hub,
@@ -153,6 +154,7 @@ func Start(ctx context.Context, opt Options) (string, error) {
 }
 
 type api struct {
+	updates       *updateCache
 	setupToken    string
 	requestSlots  chan struct{}
 	passwordSlots chan struct{}
@@ -257,6 +259,8 @@ func (a *api) serve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	switch {
+	case path == "/api/v1/update" && r.Method == http.MethodGet, path == "/api/v1/update/check" && r.Method == http.MethodPost:
+		a.update(w, r)
 	case path == "/api/v1/firewall/sync" && (r.Method == http.MethodGet || r.Method == http.MethodPut):
 		a.firewallSync(w, r)
 	case path == "/api/v1/firewall/plan" && r.Method == http.MethodPost:

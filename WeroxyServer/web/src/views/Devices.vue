@@ -882,29 +882,29 @@ async function saveEdit(){if(!editValid.value||actionBusy.value||previewBusy.val
       <el-button type="primary" @click="openAdd">{{ t("addClient") }}</el-button>
     </div>
     <el-table ref="deviceTable" :data="paged" max-height="480" @sort-change="onSort" @scroll="onLazy(deviceTable, 'list', ranked.length)">
-      <el-table-column prop="name" :label="t('name')" width="220" sortable="custom">
+      <el-table-column prop="name" :label="t('name')" min-width="180" sortable="custom">
         <template #default="{ row }">
           <router-link class="name-link" :to="'/devices/' + row.name">{{ row.name }}</router-link>
         </template>
       </el-table-column>
-      <el-table-column prop="protocol" :label="t('protocol')" width="100">
+      <el-table-column prop="protocol" :label="t('protocol')" min-width="105">
         <template #default="{ row }">
           <el-tag :class="row.protocol === 'weroxy' ? 'tag-weroxy' : 'tag-legacy'">{{ row.protocol === "weroxy" ? "Weroxy" : "Legacy" }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="sessions" :label="t('sessions')" width="110" sortable="custom">
+      <el-table-column prop="sessions" :label="t('sessions')" min-width="150" sortable="custom">
         <template #default="{ row }"><span :class="sessionClass(row.sessions)">{{ row.sessions }}</span></template>
       </el-table-column>
-      <el-table-column :label="t('up')" prop="up" width="100" sortable="custom">
+      <el-table-column :label="t('up')" prop="up" min-width="105" sortable="custom">
         <template #default="{ row }">{{ formatBytes(row.up_bytes) }}</template>
       </el-table-column>
-      <el-table-column :label="t('down')" prop="down" width="100" sortable="custom">
+      <el-table-column :label="t('down')" prop="down" min-width="105" sortable="custom">
         <template #default="{ row }">{{ formatBytes(row.down_bytes) }}</template>
       </el-table-column>
-      <el-table-column :label="t('traffic')" prop="bytes" min-width="110" sortable="custom">
+      <el-table-column :label="t('traffic')" prop="bytes" min-min-width="150" sortable="custom">
         <template #default="{ row }">{{ formatBytes(row.up_bytes + row.down_bytes) }}</template>
       </el-table-column>
-      <el-table-column :label="t('state')" prop="state" width="110" sortable="custom" class-name="cell-nowrap">
+      <el-table-column :label="t('state')" prop="state" min-width="150" sortable="custom" class-name="device-state-cell">
         <template #default="{ row }">
           <el-tag :type="row.online_known === false ? 'warning' : row.online ? 'success' : 'danger'">{{ row.online_known === false ? t("unknown") : row.online ? t("online") : t("offline") }}</el-tag>
           <el-tag v-if="row.paused" type="danger" style="margin-left: 6px">{{ t("pause") }}</el-tag>
@@ -1037,14 +1037,14 @@ async function saveEdit(){if(!editValid.value||actionBusy.value||previewBusy.val
           </ForwardForm>
         </div>
         <el-table class="forward-table" ref="forwardTable" :data="shownForwards" max-height="360" @scroll="onLazy(forwardTable, 'forward', selected.forwards.length)">
-          <el-table-column :label="t('publicPort')" width="95">
+          <el-table-column :label="t('publicPort')" min-width="130">
             <template #default="{ row }">{{ portOf(row.listen) }}</template>
           </el-table-column>
-          <el-table-column prop="target" :label="t('lanAddress')" width="190" show-overflow-tooltip>
+          <el-table-column prop="target" :label="t('lanAddress')" min-width="220" show-overflow-tooltip>
             <template #default="{row}">{{ row.target }}<small v-if="[22,2222,3389].includes(Number(row.target.split(':').pop()))" class="reason">{{ t('sensitiveTargetHint') }}</small></template>
           </el-table-column>
           <el-table-column :label="t('traffic')" min-width="110"><template #default="{ row }"><div class="forward-traffic"><span>↑ {{ formatBytes(row.up_bytes ?? 0) }}</span><span>↓ {{ formatBytes(row.down_bytes ?? 0) }}</span></div></template></el-table-column>
-          <el-table-column v-if="selected.protocol === 'weroxy'" :label="t('dataPorts')" width="95">
+          <el-table-column v-if="selected.protocol === 'weroxy'" :label="t('dataPorts')" min-width="130">
             <template #default="{ row }">
               <el-tooltip placement="top" popper-class="forward-detail-tooltip">
                 <template #content>
@@ -1065,24 +1065,24 @@ async function saveEdit(){if(!editValid.value||actionBusy.value||previewBusy.val
               <div v-if="row.runtime_known" class="capacity-caption">{{ t('capacityRatio') }}</div>
             </template>
           </el-table-column>
-          <el-table-column v-if="selected.protocol === 'weroxy'" :label="t('publicationShort')" width="96">
+          <el-table-column v-if="selected.protocol === 'weroxy'" :label="t('publicationShort')" min-width="130">
             <template #default="{ row }">
               <el-tooltip :content="t('portPublish_' + (row.publication_status || 'unverified'))" placement="top" popper-class="forward-detail-tooltip">
                 <el-tag size="small" :type="row.publication_status === 'published' ? 'success' : row.publication_status === 'missing' ? 'danger' : 'warning'">{{ publicationLabel(row.publication_status) }}</el-tag>
               </el-tooltip>
             </template>
           </el-table-column>
-          <el-table-column v-if="selected.protocol === 'weroxy'" :label="t('deviceReachability')" width="100">
+          <el-table-column v-if="selected.protocol === 'weroxy'" :label="t('deviceReachability')" min-width="130">
             <template #default="{ row }">
               <el-tooltip :content="row.device_reachability === 'reachable' ? t('reachabilityVerified') : row.device_reachability === 'unreachable' ? t('deviceDataUnreachable') : t('reachabilityUnknown')" placement="top" popper-class="forward-detail-tooltip">
                 <el-tag size="small" :type="row.device_reachability === 'reachable' ? 'success' : row.device_reachability === 'unreachable' ? 'danger' : 'warning'">{{ row.device_reachability === 'reachable' ? t('verifiedShort') : row.device_reachability === 'unreachable' ? t('failedShort') : t('unknownShort') }}</el-tag>
               </el-tooltip>
             </template>
           </el-table-column>
-          <el-table-column :label="t('state')" width="80">
+          <el-table-column :label="t('state')" min-width="130">
             <template #default="{ row }"><el-tag :type="row.enabled === false ? 'danger' : 'success'">{{ row.enabled === false ? t("disabled") : t("enabled") }}</el-tag></template>
           </el-table-column>
-          <el-table-column :label="t('actions')" fixed="right" width="104" align="center">
+          <el-table-column :label="t('actions')" fixed="right" width="120" align="center">
             <template #default="{ row }">
               <span class="row-actions forward-row-actions">
                 <IconButton name="edit" :label="t('editForward')" @click.stop="editForward(row)" />
@@ -1104,25 +1104,25 @@ async function saveEdit(){if(!editValid.value||actionBusy.value||previewBusy.val
         <el-table :data="connectionRows" v-loading="connectionLoading" max-height="430">
           <el-table-column prop="source_ip" label="IP" min-width="120" />
           <el-table-column prop="forward_listen" :label="t('listen')" min-width="135" />
-          <el-table-column :label="t('dataPorts')" width="90">
+          <el-table-column :label="t('dataPorts')" min-width="130">
             <template #default="{ row }">{{ row.data_port || "—" }}</template>
           </el-table-column>
           <el-table-column :label="t('startTime')" min-width="175">
             <template #default="{ row }">{{ new Date(row.started_at).toLocaleString() }}</template>
           </el-table-column>
-          <el-table-column :label="t('duration')" width="90">
+          <el-table-column :label="t('duration')" min-width="130">
             <template #default="{ row }">{{ connectionDuration(row) }}</template>
           </el-table-column>
-          <el-table-column :label="t('up')" width="95">
+          <el-table-column :label="t('up')" min-width="130">
             <template #default="{ row }">{{ formatBytes(row.up_bytes) }}</template>
           </el-table-column>
-          <el-table-column :label="t('down')" width="95">
+          <el-table-column :label="t('down')" min-width="130">
             <template #default="{ row }">{{ formatBytes(row.down_bytes) }}</template>
           </el-table-column>
-          <el-table-column :label="t('state')" width="90">
+          <el-table-column :label="t('state')" min-width="130">
             <template #default="{ row }"><el-tag class="connection-state" :type="row.status === 'active' ? 'success' : 'danger'" effect="light">{{ row.status === "active" ? t("connectionActive") : t("connectionClosed") }}</el-tag></template>
           </el-table-column>
-          <el-table-column prop="close_reason" :label="t('closeReason')" min-width="125" />
+          <el-table-column prop="close_reason" :label="t('closeReason')" min-width="155" />
           <template #empty><el-empty :description="t('empty')" /></template>
         </el-table>
         <el-button v-if="connectionNext" text :loading="connectionLoading" @click="loadConnectionPage(connectionNext)">{{ t("loadMore") }}</el-button>
@@ -1135,11 +1135,11 @@ async function saveEdit(){if(!editValid.value||actionBusy.value||previewBusy.val
             <el-table ref="visitorTable" row-key="ip" :data="shownVisitors" height="100%" @selection-change="pickedVisitors = $event" @scroll="onLazy(visitorTable, 'visitor', visibleVisitors.length)">
               <el-table-column type="selection" width="42" reserve-selection />
               <el-table-column prop="ip" label="IP" min-width="140" />
-              <el-table-column :label="t('state')" width="125">
+              <el-table-column :label="t('state')" min-width="140">
                 <template #default="{ row }"><el-tag :type="row.active ? 'success' : 'danger'">{{ row.active ? `${t("online")} · ${row.active_connections}` : t("offline") }}</el-tag></template>
               </el-table-column>
-              <el-table-column prop="connections" :label="t('connections')" width="90" />
-              <el-table-column :label="t('trafficTotal')" width="105">
+              <el-table-column prop="connections" :label="t('connections')" min-width="215" />
+              <el-table-column :label="t('trafficTotal')" min-width="145">
                 <template #default="{ row }">{{ formatBytes(row.bytes) }}</template>
               </el-table-column>
               <el-table-column :label="t('actions')" fixed="right" width="90" align="right">
@@ -1160,7 +1160,7 @@ async function saveEdit(){if(!editValid.value||actionBusy.value||previewBusy.val
             <el-table ref="banTable" :row-key="banRowKey" :data="shownBans" height="100%" @selection-change="pickedBans = $event" @scroll="onLazy(banTable, 'ban', selected.rules.filter((rule) => rule.action === 'ban').length)">
               <el-table-column type="selection" width="42" reserve-selection />
               <el-table-column prop="cidr" label="IP" min-width="118" show-overflow-tooltip />
-              <el-table-column prop="scope" :label="t('mode')" width="90" />
+              <el-table-column prop="scope" :label="t('mode')" min-width="95" />
               <el-table-column prop="listen" :label="t('listen')" width="72" />
               <el-table-column :label="t('actions')" fixed="right" width="94" align="right">
                 <template #default="{ row }">

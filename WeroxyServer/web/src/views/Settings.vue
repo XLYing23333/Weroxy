@@ -9,6 +9,16 @@ import { applyTheme } from "../theme";
 
 const router = useRouter();
 const { t, locale } = useI18n();
+type UpdateInfo = {current_version:string;latest_version?:string;available:boolean;release_url?:string;checked_at?:string;status:string};
+const updateInfo = ref<UpdateInfo | null>(null);
+const updateBusy = ref(false);
+async function checkUpdate(force=false) {
+  if (updateBusy.value) return;
+  updateBusy.value=true;
+  try { updateInfo.value=await api<UpdateInfo>(force ? "/api/v1/update/check" : "/api/v1/update", {method: force ? "POST" : "GET", signal:loadRequest.signal}); }
+  catch { updateInfo.value={current_version:updateInfo.value?.current_version || "—",available:false,status:"error"}; }
+  finally { updateBusy.value=false; }
+}
 const settings = ref<Settings | null>(null);
 const loading = ref(false);
 const error = ref("");
@@ -154,7 +164,7 @@ async function restoreBackup() {
   finally {backupAction.value=null;restoreConfirm.value=false;}
 }
 
-onMounted(() => {void load();});
+onMounted(() => {void load(); void checkUpdate();});
 onUnmounted(() => {passwordRequest?.abort();current.value="";next.value="";again.value="";});
 </script>
 
@@ -188,14 +198,17 @@ onUnmounted(() => {passwordRequest?.abort();current.value="";next.value="";again
           <el-button type="primary" native-type="submit" :loading="passwordBusy">{{ t("save") }}</el-button>
         </el-form>
       </section>
-      <section class="form-block">
-        <h3>{{ t("backup") }}</h3>
-        <p class="reason">{{ t("restoreImpact") }}</p>
-        <div class="inline-row"><el-input v-model="backupFile" readonly :placeholder="t('file')" /><el-button :disabled="!backupFile || backupAction !== null" @click="downloadBackup">{{ t("download") }}</el-button><el-button type="primary" :loading="backupAction === 'create'" :disabled="backupAction !== null" @click="runBackup">{{ t("backup") }}</el-button></div>
-        <div class="inline-row"><el-button :disabled="backupAction !== null" @click="fileInput?.click()">{{ t("chooseFile") }}</el-button><input ref="fileInput" hidden type="file" accept=".db,application/vnd.sqlite3,application/x-sqlite3" :disabled="backupAction !== null" @change="pickRestore" /><span class="reason">{{ restoreFile }}</span><el-checkbox v-model="restoreConfirm">{{ t("confirmRestore") }}</el-checkbox><el-button :loading="backupAction === 'restore'" :disabled="!uploadFile || !restoreConfirm || backupAction !== null" @click="restoreBackup">{{ t("restore") }}</el-button></div>
-      </section>
+
     </div>
     <div class="settings-col">
+      <section class="form-block update-card">
+        <h3>{{ t("softwareUpdate") }}</h3>
+        <p>{{ t("currentVersion") }}: {{ updateInfo?.current_version || '—' }}</p>
+        <p v-if="updateInfo?.latest_version">{{ t("latestVersion") }}: {{ updateInfo.latest_version }}</p>
+        <p role="status">{{ updateBusy ? t('checkingUpdate') : updateInfo?.status === 'error' ? t('updateUnavailable') : updateInfo?.available ? t('updateAvailable') : updateInfo?.status === 'ok' ? t(updateInfo.latest_version !== updateInfo.current_version ? 'newerThanRelease' : 'upToDate') : '—' }}</p>
+        <p v-if="updateInfo?.checked_at" class="reason">{{ t('lastChecked') }}: {{ new Date(updateInfo.checked_at).toLocaleString() }}</p>
+        <div class="inline-row"><el-button :loading="updateBusy" @click="checkUpdate(true)">{{ t('checkUpdate') }}</el-button><a v-if="updateInfo?.release_url" :href="updateInfo.release_url" target="_blank" rel="noopener noreferrer">{{ t('viewRelease') }}</a></div>
+      </section>
       <section class="form-block">
         <h3>{{ t("forwardDefaults") }}</h3>
         <div class="option-row"><span>{{ t("mode") }}</span><el-radio-group v-model="mode"><el-radio-button value="shared">{{ t("shared") }}</el-radio-button><el-radio-button value="exclusive">{{ t("exclusive") }}</el-radio-button></el-radio-group></div>
@@ -207,6 +220,12 @@ onUnmounted(() => {passwordRequest?.abort();current.value="";next.value="";again
         <p>{{ t(`publication_${settings.publication?.status ?? 'unverified'}`) }} · {{ settings.publication?.published_count ?? 0 }}/{{ settings.publication?.listener_count ?? 0 }}</p>
         <p v-if="settings.publication?.missing_ports?.length" class="reason">{{ t("publicationMissing") }}: {{ settings.publication.missing_ports.join(", ") }}</p>
         <p class="reason">{{ t("forwardPool") }}: {{ settings.pool.forward_first }}–{{ settings.pool.forward_last }} · {{ t("channelPool") }}: {{ settings.pool.data_first }}–{{ settings.pool.data_last }}</p>
+      </section>
+      <section class="form-block">
+        <h3>{{ t("backup") }}</h3>
+        <p class="reason">{{ t("restoreImpact") }}</p>
+        <div class="inline-row"><el-input v-model="backupFile" readonly :placeholder="t('file')" /><el-button :disabled="!backupFile || backupAction !== null" @click="downloadBackup">{{ t("download") }}</el-button><el-button type="primary" :loading="backupAction === 'create'" :disabled="backupAction !== null" @click="runBackup">{{ t("backup") }}</el-button></div>
+        <div class="inline-row"><el-button :disabled="backupAction !== null" @click="fileInput?.click()">{{ t("chooseFile") }}</el-button><input ref="fileInput" hidden type="file" accept=".db,application/vnd.sqlite3,application/x-sqlite3" :disabled="backupAction !== null" @change="pickRestore" /><span class="reason">{{ restoreFile }}</span><el-checkbox v-model="restoreConfirm">{{ t("confirmRestore") }}</el-checkbox><el-button :loading="backupAction === 'restore'" :disabled="!uploadFile || !restoreConfirm || backupAction !== null" @click="restoreBackup">{{ t("restore") }}</el-button></div>
       </section>
     </div>
   </main>

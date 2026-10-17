@@ -10,7 +10,7 @@ import unicodedata
 import console
 
 ACTIONS = [action for action in console.ACTIONS if action != 'notices'] + ['quit']
-LABELS = ['Install', 'Start', 'Stop', 'Restart', 'Status', 'Reset password', 'Uninstall', 'Exit']
+LABELS = ['Install', 'Start', 'Stop', 'Restart', 'Status', 'Reset password', 'Uninstall', 'Update', 'Exit']
 DESCRIPTIONS = [
     'Verify the release, prepare data and start the container. Create the account in Web.',
     'Check the release and ports, then start the existing deployment.',
@@ -19,6 +19,7 @@ DESCRIPTIONS = [
     'Show the container, Web address and available ports.',
     'Set a new administrator password. Account name stays unchanged.',
     'Remove this deployment\'s containers and tasks. Keep its database and backups.',
+    'Check GitHub releases and install a verified update with rollback.',
     'Close the manager. Running services remain running.',
 ]
 
@@ -155,6 +156,21 @@ def dialog(screen, title, prompt='', secret=False):
 
 def parameters(screen, action, lang='en'):
     args = argparse.Namespace(username=None, password=None, lang='en')
+    if action == 'update':
+        args.update_cancel = threading.Event()
+        args.update_installing = threading.Event()
+        import update
+        release = update.check()
+        current = console.summary()['version']
+        if update.version(release['tag_name']) <= update.version(current):
+            args.update_release = release
+            return args
+        answer = dialog(screen, 'Update ' + current + ' to ' + release['tag_name'],
+                        'Connections will restart. Type UPDATE to continue. ' + release['html_url'])
+        if answer != 'UPDATE':
+            return None
+        args.update_release = release
+        args.update_confirmed = True
     if action == 'reset-password':
         args.username = dialog(screen, 'Reset password / 1 of 2', 'Administrator username')
         if not args.username:
@@ -241,6 +257,9 @@ def operation(screen, action, args, lang='en'):
                 running = task.is_alive()
                 offset = result(screen, title, output.snapshot(), running, 10**9 if follow else offset, outcome[0] if not running else '')
                 key = read_key(screen, timeout=100)
+                if running and action == 'update' and key in (27, ord('q')) and not args.update_installing.is_set():
+                    args.update_cancel.set()
+                    output.write('Cancelling download; current service is unchanged.\n')
                 if not running and key in (10, 13, 27, ord('q'), curses.KEY_ENTER):
                     break
                 if key in (curses.KEY_UP, curses.KEY_PPAGE):
@@ -303,7 +322,11 @@ def menu(screen, lang='en', notice=''):
             if not available(action, state):
                 notice = 'Already installed: select Start.' if action == 'install' else 'Install the Server first.'
                 continue
-            args = parameters(screen, action)
+            try:
+                args = parameters(screen, action)
+            except Exception:
+                notice = "Unable to check update. Check network access and try again."
+                continue
             if args is not None:
                 operation(screen, action, args)
                 notice = ''

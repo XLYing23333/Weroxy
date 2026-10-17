@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build v0.4.x assets from a clean commit; never deploy or publish them."""
+"""Build release assets from a clean commit; never deploy or publish them."""
 import argparse
 import datetime
 import hashlib
@@ -62,7 +62,7 @@ def main():
         run(go,'build','-trimpath','-buildvcs=false','-ldflags',f'-s -w -X weroxy/server/internal/buildinfo.Version={version}',
             '-o',str(stage/'weroxy-Server'),'./cmd/weroxy-Server',cwd=ROOT/'WeroxyServer',env=env)
         shutil.copyfile(ROOT/'WeroxyServer/THIRD_PARTY_NOTICES',stage/'THIRD_PARTY_NOTICES')
-        (stage/'Dockerfile').write_text('FROM scratch\nCOPY weroxy-Server /weroxy-Server\nCOPY THIRD_PARTY_NOTICES /THIRD_PARTY_NOTICES\nUSER 10001:10001\nENTRYPOINT ["/weroxy-Server"]\nCMD ["run"]\n')
+        (stage/'Dockerfile').write_text('FROM golang:1.27.1-bookworm AS trust\nFROM scratch\nCOPY --from=trust /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt\nCOPY weroxy-Server /weroxy-Server\nCOPY THIRD_PARTY_NOTICES /THIRD_PARTY_NOTICES\nUSER 10001:10001\nENTRYPOINT ["/weroxy-Server"]\nCMD ["run"]\n')
         image='weroxy-server:'+version
         run('docker','build','--platform=linux/amd64','-t',image,str(stage))
         info=json.loads(run('docker','image','inspect',image,capture=True))[0]

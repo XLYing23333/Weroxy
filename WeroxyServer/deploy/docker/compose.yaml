@@ -2,7 +2,7 @@
 # Initialize the same container port pool in /data before startup.
 services:
   weroxy:
-    image: ${WEROXY_IMAGE:-weroxy-server:0.4.0}
+    image: ${WEROXY_IMAGE:-weroxy-server:0.5.0}
     build:
       context: ../..
       dockerfile: DockerFile

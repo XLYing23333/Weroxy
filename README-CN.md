@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Version-0.4.0-c4a574" alt="Version 0.4.0" />
+  <img src="https://img.shields.io/badge/Version-0.5.0-c4a574" alt="Version 0.5.0" />
   <img src="https://img.shields.io/badge/Go-1.27.1-00ADD8?logo=go&amp;logoColor=white" alt="Go 1.27.1" />
   <img src="https://img.shields.io/badge/Vue-3-4FC08D?logo=vuedotjs&amp;logoColor=white" alt="Vue 3" />
   <img src="https://img.shields.io/badge/Storage-SQLite-003B57?logo=sqlite&amp;logoColor=white" alt="SQLite storage" />
@@ -44,21 +44,21 @@
 | **WeroxyServer** | Docker 镜像、部署脚本、SHA-256 与构建基准 | Linux amd64 |
 | **WeroxyClient** | deb / RPM / pacman 原生安装包 | deb：amd64、arm64；RPM：x86_64、aarch64；pacman：x86_64 |
 
-Server 发布包文件名为 `weroxy-server_0.4.0_linux_amd64.release.tar.gz`，包含可执行管理入口 `manage`、Docker 镜像和部署文件。下载与主机架构匹配的包后，按下方步骤安装。
+Server 发布包文件名为 `weroxy-server_0.5.0_linux_amd64.release.tar.gz`，包含可执行管理入口 `manage`、Docker 镜像和部署文件。下载与主机架构匹配的包后，按下方步骤安装。
 
 Client 程序由系统包管理器安装，提供 deb、RPM 和 pacman 包。Client tar.gz 包含对应架构的 deb 与安装说明，不提供 Windows 分发。
 
 
-[GitHub 公开仓库](https://github.com/XLYing23333/Weroxy) · [v0.4.0 Release](https://github.com/XLYing23333/Weroxy/releases/tag/v0.4.0)
+[GitHub 公开仓库](https://github.com/XLYing23333/Weroxy) · [v0.5.0 Release](https://github.com/XLYing23333/Weroxy/releases/tag/v0.5.0)
 
 | 下载 | 平台 |
 | :--- | :--- |
-| [Server](https://github.com/XLYing23333/Weroxy/releases/download/v0.4.0/weroxy-server_0.4.0_linux_amd64.release.tar.gz) | Linux amd64 |
-| [Client deb](https://github.com/XLYing23333/Weroxy/releases/download/v0.4.0/weroxy-client_0.4.0_amd64.deb) | Debian/Ubuntu amd64 |
-| [Client deb](https://github.com/XLYing23333/Weroxy/releases/download/v0.4.0/weroxy-client_0.4.0_arm64.deb) | Debian/Ubuntu arm64 |
-| [Client tar.gz](https://github.com/XLYing23333/Weroxy/releases/download/v0.4.0/weroxy-client_0.4.0_linux_amd64.tar.gz) | Linux amd64 (deb bundle) |
-| [Client tar.gz](https://github.com/XLYing23333/Weroxy/releases/download/v0.4.0/weroxy-client_0.4.0_linux_arm64.tar.gz) | Linux arm64 (deb bundle) |
-| [SHA-256](https://github.com/XLYing23333/Weroxy/releases/download/v0.4.0/SHA256SUMS) | All assets |
+| [Server](https://github.com/XLYing23333/Weroxy/releases/download/v0.5.0/weroxy-server_0.5.0_linux_amd64.release.tar.gz) | Linux amd64 |
+| [Client deb](https://github.com/XLYing23333/Weroxy/releases/download/v0.5.0/weroxy-client_0.5.0_amd64.deb) | Debian/Ubuntu amd64 |
+| [Client deb](https://github.com/XLYing23333/Weroxy/releases/download/v0.5.0/weroxy-client_0.5.0_arm64.deb) | Debian/Ubuntu arm64 |
+| [Client tar.gz](https://github.com/XLYing23333/Weroxy/releases/download/v0.5.0/weroxy-client_0.5.0_linux_amd64.tar.gz) | Linux amd64 (deb bundle) |
+| [Client tar.gz](https://github.com/XLYing23333/Weroxy/releases/download/v0.5.0/weroxy-client_0.5.0_linux_arm64.tar.gz) | Linux arm64 (deb bundle) |
+| [SHA-256](https://github.com/XLYing23333/Weroxy/releases/download/v0.5.0/SHA256SUMS) | All assets |
 
 ## Server 安装
 
@@ -68,14 +68,14 @@ Client 程序由系统包管理器安装，提供 deb、RPM 和 pacman 包。Cli
 
 ```sh
 set -eu
-release=https://github.com/XLYing23333/Weroxy/releases/download/v0.4.0
+release=https://github.com/XLYing23333/Weroxy/releases/download/v0.5.0
 work=$(mktemp -d)
 cd "$work"
-wget "$release/weroxy-server_0.4.0_linux_amd64.release.tar.gz"
+wget "$release/weroxy-server_0.5.0_linux_amd64.release.tar.gz"
 wget "$release/SHA256SUMS"
-grep '  weroxy-server_0.4.0_linux_amd64.release.tar.gz$' SHA256SUMS | sha256sum -c -
+grep '  weroxy-server_0.5.0_linux_amd64.release.tar.gz$' SHA256SUMS | sha256sum -c -
 sudo install -d -m 700 /opt/weroxy
-sudo tar -xzf weroxy-server_0.4.0_linux_amd64.release.tar.gz -C /opt/weroxy
+sudo tar -xzf weroxy-server_0.5.0_linux_amd64.release.tar.gz -C /opt/weroxy
 sudo /opt/weroxy/manage
 ```
 
@@ -153,7 +153,7 @@ sudo env LC_ALL=C.UTF-8 LANG=C.UTF-8 /opt/weroxy/manage
 
 ## 升级与备份
 
-0.4.0 的 Server 与 Client 必须配套升级：Weroxy v2 使用 Noise，拒绝旧明文 Weroxy 协议，不自动降级。Control 全程加密，Data 仅握手加密，业务内容沿用原协议；SSH 自身负责内容加密及主机验证。Legacy 只保留普通 4900，Web 仍为 HTTP；不需要 TLS、证书或额外客户端。
+0.5.0 的 Server 与 Client 必须配套升级：Weroxy v2 使用 Noise，拒绝旧明文 Weroxy 协议，不自动降级。Control 全程加密，Data 仅握手加密，业务内容沿用原协议；SSH 自身负责内容加密及主机验证。Legacy 只保留普通 4900，Web 仍为 HTTP；不需要 TLS、证书或额外客户端。
 
 升级前停止服务并私密备份完整 `deploy/data` 与管理配置。完整备份包含设备密钥的加密主秘密；只备份 SQLite 文件不足以恢复全部凭据。不要在已有数据上再次执行首次安装；底层升级与恢复流程见 [Docker 部署文档](WeroxyServer/deploy/docker/README.md#升级与恢复)。旧版本安装包可留作回退。
 
@@ -163,12 +163,12 @@ sudo env LC_ALL=C.UTF-8 LANG=C.UTF-8 /opt/weroxy/manage
 
 ```sh
 set -eu
-release=https://github.com/XLYing23333/Weroxy/releases/download/v0.4.0
+release=https://github.com/XLYing23333/Weroxy/releases/download/v0.5.0
 arch=$(dpkg --print-architecture)
 case "$arch" in amd64|arm64) ;; *) echo "Unsupported architecture: $arch"; exit 1 ;; esac
 work=$(mktemp -d)
 cd "$work"
-pkg="weroxy-client_0.4.0_${arch}.deb"
+pkg="weroxy-client_0.5.0_${arch}.deb"
 wget "$release/$pkg"
 wget "$release/SHA256SUMS"
 grep "  $pkg\$" SHA256SUMS | sha256sum -c -
@@ -202,15 +202,15 @@ TUI **uninstall** 会停止、取消自启、删除当前用户与服务 Profile
 Go 版本以两个 `go.mod` 为准；前端构建需要 Node.js 22/npm，运行不需要 Node、JRE 或外部数据库。
 
 ```sh
-VERSION=0.4.0 GO_BIN=/path/to/go WeroxyServer/deploy/build.sh
+VERSION=0.5.0 GO_BIN=/path/to/go WeroxyServer/deploy/build.sh
 # 从源码构建 Docker 镜像（在仓库根目录）
-docker build -f WeroxyServer/DockerFile --build-arg VERSION=0.4.0 -t weroxy-server:0.4.0 WeroxyServer
+docker build -f WeroxyServer/DockerFile --build-arg VERSION=0.5.0 -t weroxy-server:0.5.0 WeroxyServer
 # Client 原生包构建见 WeroxyClient/deploy/INSTALL.md
 ```
 
 Server 与 Client 分别在各自模块运行 `go test ./...`；Web 运行 `npm run typecheck`、`node --experimental-strip-types --test test/display.test.mjs`、`npm run build`；部署脚本测试为 `python3 -m unittest discover -s WeroxyServer/deploy/docker -p 'test_*.py'`。
 
-## 0.4.0 传输与加固
+## 0.5.0 传输与加固
 
 - Control 全程使用 Noise，Data 仅在绑定握手阶段加密。READY 后不再增加业务加密层；SSH 沿用自身加密及主机密钥验证。
 - 配置仍为 Host、Port、Key，不需要 TLS、证书或额外客户端。Server 与 Client 必须成对升级，旧 Weroxy 明文协议不会自动降级接入。
@@ -269,8 +269,8 @@ BSD/MIT 的再分发条款及 Apache 声明要求分发时保留相应版权和�
 复制下段并补充目标机器与组件；Host、Port、Key 可在安装后通过 TUI 配置。
 
 ```text
-请为目标主机安装 Weroxy v0.4.0，项目 https://github.com/XLYing23333/Weroxy，
-发布页 https://github.com/XLYing23333/Weroxy/releases/tag/v0.4.0。
+请为目标主机安装 Weroxy v0.5.0，项目 https://github.com/XLYing23333/Weroxy，
+发布页 https://github.com/XLYing23333/Weroxy/releases/tag/v0.5.0。
 目标主机：[填写 SSH 主机或本机]；组件：[Server / Client]。
 先阅读仓库 README-CN.md 和 INSTALL_AGENT.md，检测操作系统、架构、已安装 Weroxy、
 占用端口及其他生产服务。下载对应 Release 资产并校验同一版本 SHA256SUMS。
@@ -282,3 +282,9 @@ SSH/fail2ban、全局清理 Docker 或直接改动共享防火墙。Server manag
 配置成功后检查版本、服务状态和 doctor；自启及 SSH/fail2ban 加固单独取得授权。
 报告真实结果和未验证项，不把本地 echo 测试当作真实跨节点验收。
 ```
+
+### 更新
+
+在 Server 或 Client 终端管理菜单选择 **Update**，检查 GitHub 最新稳定版本；确认后下载、校验 SHA-256，并使用回滚备份升级。安装期间连接会重建。Server Web 设置仅提供版本提醒及发布链接，不执行安装。检查和下载更新需要通过 HTTPS 访问 GitHub。
+
+现有 0.4.0 安装需先通过校验后的发布包升级到 0.5.0，之后即可使用新增的 Update 菜单。Server 升级保留数据及端口映射；验收前保留 `.update-previous` 和 `deploy/rollback-data`，下次升级前先归档这两份备份。

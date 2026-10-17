@@ -2,6 +2,7 @@ import { createI18n } from "vue-i18n";
 
 const messages = {
   zh: {
+newerThanRelease:"当前版本高于最新公开稳定版", softwareUpdate:"软件更新", currentVersion:"当前版本", latestVersion:"最新版本", checkingUpdate:"正在检查更新…", updateUnavailable:"无法检查更新", updateAvailable:"有新版本可用", upToDate:"已是最新稳定版本", lastChecked:"上次成功检查", checkUpdate:"检查更新", viewRelease:"查看发布",
 coverage:"采样覆盖 {percent}%", historySessions:"连接峰值：{count}", connectionActive:"进行中", connectionClosed:"已结束", failuresSinceStart:"本次 Server 启动以来，客户端上报的连接失败。重启后清零。", openList:"打开", chooseFile:"选择文件", setupAccountHint:"用户名设置后不可修改。密码至少 6 字节，可在设置中修改。", setupConsole:"请查看服务启动输出，打开其中的随机初始化路径。", setupUnauthorized:"初始化路径无效，请查看服务启动输出。", setupUnavailable:"初始化暂时不可用，请重试。", alreadyInitialized:"账户已初始化，请登录。", invalidUsername:"用户名须为 1–64 位字母、数字、点、下划线或连字符。",
 
  restoreImpact: "恢复会替换当前配置并撤销管理员会话，完成后需重新登录。须先停止数据转发入口；更换备份文件后必须重新确认。",
@@ -417,6 +418,7 @@ coverage:"采样覆盖 {percent}%", historySessions:"连接峰值：{count}", co
     next: "下一页",
   },
   en: {
+newerThanRelease:"Running a newer version than the latest public release", softwareUpdate:"Software update", currentVersion:"Current version", latestVersion:"Latest version", checkingUpdate:"Checking for updates…", updateUnavailable:"Unable to check for updates", updateAvailable:"A new version is available", upToDate:"Up to date", lastChecked:"Last successful check", checkUpdate:"Check for updates", viewRelease:"View release",
 coverage:"Coverage {percent}%", historySessions:"Peak sessions: {count}", connectionActive:"Active", connectionClosed:"Closed", failuresSinceStart:"Client-reported failures since this Server started. Resets on restart.", openList:"Open", chooseFile:"Choose file", setupAccountHint:"The username cannot be changed. Passwords require at least 6 bytes and can be changed in Settings.", setupConsole:"Open the random setup path printed in the service startup output.", setupUnauthorized:"Invalid setup path. Check the service startup output.", setupUnavailable:"Setup is unavailable. Try again.", alreadyInitialized:"The account is already initialized. Sign in.", invalidUsername:"Use 1–64 letters, digits, dots, underscores or hyphens for the username.",
 
  restoreImpact: "Restoring replaces the current configuration and revokes administrator sessions. Log in again afterward. Stop the data forwarding listeners first; selecting another backup requires a new confirmation.",

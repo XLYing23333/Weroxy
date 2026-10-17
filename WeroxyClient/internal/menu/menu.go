@@ -67,7 +67,7 @@ func UnitText(binary, path string) string {
 	return "[Unit]\nDescription=Weroxy client\nAfter=network-online.target\nWants=network-online.target\n[Service]\nType=simple\nUser=weroxy\nGroup=weroxy\nRuntimeDirectory=weroxycli\nRuntimeDirectoryMode=0700\nNoNewPrivileges=true\nProtectSystem=strict\nProtectHome=true\nPrivateTmp=true\nExecStart=" + strconv.Quote(binary) + " run --config " + strconv.Quote(path) + "\nRestart=on-failure\nRestartSec=5\n[Install]\nWantedBy=multi-user.target\n"
 }
 
-var entries = []string{"profile", "start/restart", "stop", "status", "autostart", "doctor", "host hardening", "uninstall"}
+var entries = []string{"profile", "start/restart", "stop", "status", "autostart", "doctor", "host hardening", "Update", "uninstall"}
 
 func Run(ctx context.Context, opt Option) int {
 	if opt.Stdin == nil {
@@ -173,6 +173,11 @@ func Run(ctx context.Context, opt Option) int {
 					success = opt.Action("harden", values) == 0
 					message = "Host assistant finished."
 				}
+			} else if action == "Update" {
+				if opt.Action != nil {
+					success = opt.Action("update", nil) == 0
+					message = "Update finished."
+				}
 			} else if action == "doctor" {
 				if opt.Action != nil {
 					code := opt.Action("doctor", nil)
@@ -219,7 +224,20 @@ func draw(out io.Writer, t Terminal, opt Option, options []string, selected int,
 	fmt.Fprintln(out, clip("WeroxyClient · TCP · "+runtime.GOARCH, cols-1))
 	fmt.Fprintln(out, clip("Profile: "+opt.ConfigPath, cols-1))
 	fmt.Fprintln(out)
-	for i, item := range options {
+	visible := rows - 8
+	if visible < 1 {
+		visible = 1
+	}
+	first := 0
+	if selected >= visible {
+		first = selected - visible + 1
+	}
+	last := first + visible
+	if last > len(options) {
+		last = len(options)
+	}
+	for i := first; i < last; i++ {
+		item := options[i]
 		prefix := "  "
 		if i == selected {
 			prefix = "› "
@@ -233,7 +251,7 @@ func draw(out io.Writer, t Terminal, opt Option, options []string, selected int,
 	}
 	fmt.Fprint(out, color)
 	for i, line := range strings.Split(message, "\n") {
-		if i >= rows-len(options)-7 {
+		if i >= rows-(last-first)-7 {
 			break
 		}
 		fmt.Fprintln(out, clip(line, cols-1))

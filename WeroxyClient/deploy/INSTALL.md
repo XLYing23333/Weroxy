@@ -1,4 +1,4 @@
-# WeroxyClient 0.4.0 Linux 原生安装
+# WeroxyClient 0.5.0 Linux 原生安装
 
 仅发布 Linux 原生安装包，内含静态 Go 程序、版本信息、systemd 单元与许可证。运行时无需 Docker、JRE、Node.js 或证书。
 
@@ -8,7 +8,7 @@
 | Fedora、CentOS 7 | x86_64、aarch64 | RPM |
 | Arch Linux | x86_64 | pacman |
 
-从可信发布来源取得包与 SHA256SUMS，在包目录运行 `sha256sum -c SHA256SUMS`。Debian/Ubuntu 使用 `sudo apt install ./weroxy-client_0.4.0_amd64.deb`；Fedora 使用 dnf、CentOS 7 使用 yum、Arch 使用 `sudo pacman -U ./<包.pkg.tar.zst>`。
+从可信发布来源取得包与 SHA256SUMS，在包目录运行 `sha256sum -c SHA256SUMS`。Debian/Ubuntu 使用 `sudo apt install ./weroxy-client_0.5.0_amd64.deb`；Fedora 使用 dnf、CentOS 7 使用 yum、Arch 使用 `sudo pacman -U ./<包.pkg.tar.zst>`。
 
 包管理器拥有 `/usr/bin/weroxy-client` 与 `/usr/lib/systemd/system/weroxycli.service`。首次安装不启动、不启用服务。安装脚本为调用用户准备受限 Profile；直接 root 安装时，其他用户第一次运行再准备自己的 Profile。
 
@@ -70,15 +70,15 @@ Server 与 Client 必须配套升级到 v2。Control 全程使用 Noise，Data �
 使用 go.mod 锁定的 Go 工具链，在仓库根目录执行：
 
 ```sh
-GO_BIN=/path/to/go WeroxyClient/deploy/package.sh 0.4.0
+GO_BIN=/path/to/go WeroxyClient/deploy/package.sh 0.5.0
 ```
 
-打包工具使用隔离 Docker 容器，运行时无需 Docker。输出为 `dist/client/0.4.0/` 的 deb、RPM、pacman 包、构建基准、源码与发布 SHA-256 清单。架构支持不等于每个系统组合已经实测。
+打包工具使用隔离 Docker 容器，运行时无需 Docker。输出为 `dist/client/0.5.0/` 的 deb、RPM、pacman 包、构建基准、源码与发布 SHA-256 清单。架构支持不等于每个系统组合已经实测。
 
 ## 可选：主机加固
 
 TUI 新增“主机加固”；参数 Enter 使用默认值。也可运行 `weroxy-client harden status --json`、`harden ssh --dry-run`、`harden fail2ban --dry-run`。只有显式确认的 Debian 12 主机配置操作才调用 sudo。默认保留 SSH 登录方式，不修改 UFW；应用后需要第二 SSH 会话确认，否则五分钟自动回滚。详见 `Docs/operations/client-ssh-hardening.md`。该功能不影响穿透的运行时依赖。
 
-## 0.4.0 传输升级
+## 0.5.0 传输升级
 
 Server/Client 必须成对升级。配置仍为 Host、Port、Key；Control 和 Data 握手内嵌 Noise，不需要 SSL/TLS、证书或额外客户端。READY 后沿用原业务流，普通明文业务仍为明文，SSH 自身负责内容加密和主机身份验证。旧 Weroxy 明文新协议不兼容且不会自动降级。doctor 的 transport 检查确认本次连接已完成安全握手。
