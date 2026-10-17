@@ -178,7 +178,7 @@ def apply(console, release, args=None):
                         shutil.copyfile(stage / relative, pending)
                         pending.chmod(0o755 if relative.as_posix() == 'manage' else 0o644)
                         pending.replace(dest)
-                    console.invoke('upgrade', '--image', image)
+                    console.invoke('upgrade', '--image', image, '--preserve-publication')
                     upgraded = True
                     cid = console.core.compose('ps', '-q', 'weroxy', image=image, capture=True, timeout=10).strip()
                     reported = console.core.command(['docker', 'exec', cid, '/weroxy-Server', 'version'], capture=True, timeout=10)
@@ -189,7 +189,7 @@ def apply(console, release, args=None):
                 if upgraded:
                     try:
                         with console.critical_operation(), console.lifecycle_lock():
-                            console.invoke('rollback')
+                            console.invoke('rollback', '--automatic-upgrade-rollback')
                     except BaseException as error:
                         raise RuntimeError('Post-update verification failed and rollback failed; retain .update-previous and rollback-data for recovery') from error
                 for relative in files:

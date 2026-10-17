@@ -153,7 +153,7 @@ sudo env LC_ALL=C.UTF-8 LANG=C.UTF-8 /opt/weroxy/manage
 
 ## 升级与备份
 
-0.5.0 的 Server 与 Client 必须配套升级：Weroxy v2 使用 Noise，拒绝旧明文 Weroxy 协议，不自动降级。Control 全程加密，Data 仅握手加密，业务内容沿用原协议；SSH 自身负责内容加密及主机验证。Legacy 只保留普通 4900，Web 仍为 HTTP；不需要 TLS、证书或额外客户端。
+0.4.0 与 0.5.0 均使用 Weroxy v2，可以互通。从旧明文 Weroxy 协议迁移时两端须配套升级，不自动降级。Control 全程加密，Data 仅握手加密，业务内容沿用原协议；SSH 自身负责内容加密及主机验证。Legacy 只保留普通 4900，Web 仍为 HTTP；不需要 TLS、证书或额外客户端。
 
 升级前停止服务并私密备份完整 `deploy/data` 与管理配置。完整备份包含设备密钥的加密主秘密；只备份 SQLite 文件不足以恢复全部凭据。不要在已有数据上再次执行首次安装；底层升级与恢复流程见 [Docker 部署文档](WeroxyServer/deploy/docker/README.md#升级与恢复)。旧版本安装包可留作回退。
 
@@ -185,15 +185,16 @@ profile
 start/restart
 stop
 status
-开机自启 → enable / disable
+autostart → enable / disable
 doctor
-主机加固
+host hardening
+Update
 uninstall
 ```
 
 在 **profile** 填写 Host、Port、Key，全部明文输入。Port 默认 **29999（Control 端口）**，直接 Enter 即可；已有配置留空保留，Esc 取消不保存。内网目标与封禁在 Server Web 配置，无需证书或本地 allow。
 
-Profile 位于 `~/.config/weroxy_client/client.conf`，目录 0700、配置与密钥 0600；sudo 打开菜单仍使用调用用户的配置。保存后选择 **start/restart**，自动同步服务配置并启动或重启。安装及保存配置都不会自动启用开机自启；**开机自启 → enable / disable** 只切换自启。**status** 显示系统、服务、自启、控制连接及流量；**doctor** 检查连接。
+Profile 位于 `~/.config/weroxy_client/client.conf`，目录 0700、配置与密钥 0600；sudo 打开菜单仍使用调用用户的配置。保存后选择 **start/restart**，自动同步服务配置并启动或重启。安装及保存配置都不会自动启用开机自启；**autostart → enable / disable** 只切换自启。**status** 显示系统、服务、自启、控制连接及流量；**doctor** 检查连接。
 
 TUI **uninstall** 会停止、取消自启、删除当前用户与服务 Profile，再卸载软件，保留其他用户配置。直接通过包管理器卸载则保留配置。更多说明见 [Client 安装指南](WeroxyClient/deploy/INSTALL.md)。
 
@@ -213,7 +214,7 @@ Server 与 Client 分别在各自模块运行 `go test ./...`；Web 运行 `npm 
 ## 0.5.0 传输与加固
 
 - Control 全程使用 Noise，Data 仅在绑定握手阶段加密。READY 后不再增加业务加密层；SSH 沿用自身加密及主机密钥验证。
-- 配置仍为 Host、Port、Key，不需要 TLS、证书或额外客户端。Server 与 Client 必须成对升级，旧 Weroxy 明文协议不会自动降级接入。
+- 配置仍为 Host、Port、Key，不需要 TLS、证书或额外客户端。0.4.0 与 0.5.0 可以互通；从旧明文 Weroxy 协议迁移时，两端须配套升级，不自动降级。
 - Web 仍为 HTTP，普通明文业务不会因此获得加密。密码哈希和数据库密钥加密不代替网络传输保护。
 - TUI 的 **主机加固** 提供只读检测、安装配置、dry-run 和回滚入口，显示默认参数并允许 Enter 接受。登录防护由 fail2ban 实现，系统服务由 systemd 管理。仅 Linux Debian 12/systemd 的写入流程经过隔离验收；实际写入前须明确确认，SSH 配置须通过第二会话确认，未确认时定时回滚。
 - 设备访客显示累计连接与当前活动连接数；累计统计独立于近期明细并在正常重启后恢复。异常退出可能丢失最近未持久化的数据，不保证崩溃时零损失。
@@ -288,3 +289,29 @@ SSH/fail2ban、全局清理 Docker 或直接改动共享防火墙。Server manag
 在 Server 或 Client 终端管理菜单选择 **Update**，检查 GitHub 最新稳定版本；确认后下载、校验 SHA-256，并使用回滚备份升级。安装期间连接会重建。Server Web 设置仅提供版本提醒及发布链接，不执行安装。检查和下载更新需要通过 HTTPS 访问 GitHub。
 
 现有 0.4.0 安装需先通过校验后的发布包升级到 0.5.0，之后即可使用新增的 Update 菜单。Server 升级保留数据及端口映射；验收前保留 `.update-previous` 和 `deploy/rollback-data`，下次升级前先归档这两份备份。
+
+首次从 0.4.0 升级 Server 时，先按前文下载并校验 0.5.0 压缩包，再针对已有部署目录执行下面的步骤；安装路径不同时请替换 `/opt/weroxy`。此流程仅停止 Weroxy，私密备份完整目录，覆盖发布文件而不删除数据，再调用已有的离线升级及回滚引擎：
+
+```sh
+set -eu
+existing=/opt/weroxy
+pkg=/absolute/path/to/weroxy-server_0.5.0_linux_amd64.release.tar.gz
+# Set pkg to the absolute path of the already verified archive.
+sudo test ! -e "${existing}-before-0.5.0"
+sudo "$existing/manage" stop
+sudo cp -a "$existing" "${existing}-before-0.5.0"
+sudo tar -xzf "$pkg" -C "$existing"
+sudo python3 - "$existing" <<'PYUPDATE'
+import pathlib, sys
+package = pathlib.Path(sys.argv[1]).resolve()
+sys.path.insert(0, str(package / "deploy"))
+import console
+build = console.verify(package)
+image = console.load_image(package, build)
+console.invoke("upgrade", "--image", image, "--preserve-publication")
+PYUPDATE
+```
+
+其中 `pkg` 必须是已校验 Server 压缩包的绝对路径。验收前保留完整的 `-before-0.5.0` 备份；容器升级失败时引擎恢复旧镜像及数据状态，管理文件备份也须保留。恢复完整目录前必须停止 Weroxy。Client 0.4.0 使用已校验的 0.5.0 原生包升级并保留旧包；后续使用 **Update**。
+
+自动升级失败回滚仅在离线比对证明凭据和安全配置未变化时保留设备凭据；否则继续隔离凭据，要求明确恢复设备。两种数据回滚均会使管理员会话失效。

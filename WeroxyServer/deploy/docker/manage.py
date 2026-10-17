@@ -132,7 +132,83 @@ def verify_old_certificates(path):
     return total
 
 
-def quarantine_restore(path):
+# Only observational/runtime rows may differ during a failed startup. Unknown
+# tables remain part of the comparison, so future schema changes fail closed.
+ROLLBACK_OBSERVATIONS = {
+    'admin_sessions', 'audit_events', 'connection_details', 'device_status_samples',
+    'metric_batches', 'metric_five_minutes', 'metric_hours', 'metric_minutes',
+    'metric_samples', 'metric_totals', 'visitor_checkpoints', 'visitor_totals',
+    'retention_status', 'data_assignments', 'listener_reservations', 'config_operations',
+}
+
+
+def security_state_unchanged(current, backup):
+    """Allow automatic credential retention only with bounded positive evidence."""
+    deadline = time.monotonic() + 5
+    ignored = {'weroxy.db', 'weroxy.db-wal', 'weroxy.db-shm',
+               'deployment-publication.json', 'host-port-plan.json', '.rollback-prepared'}
+    try:
+        def files(root):
+            out = {}; size = 0
+            verify_data(root)
+            for item in root.rglob('*'):
+                relative = item.relative_to(root)
+                if relative.parts[0] == 'logs' or relative.as_posix() in ignored or item.is_dir():
+                    continue
+                size += item.stat().st_size
+                if len(out) >= 1024 or size > 64 * 1024 ** 2 or time.monotonic() >= deadline:
+                    raise RuntimeError('credential comparison budget exceeded')
+                digest = hashlib.sha256()
+                with item.open('rb') as stream:
+                    for chunk in iter(lambda: stream.read(65536), b''):
+                        digest.update(chunk)
+                out[relative.as_posix()] = digest.digest()
+            return out
+        if files(current) != files(backup):
+            return False
+        import itertools
+        with contextlib.ExitStack() as stack:
+            databases = []
+            for root in (current, backup):
+                path = root / 'weroxy.db'
+                if path.stat().st_size > 64 * 1024 ** 2:
+                    return False
+                db = stack.enter_context(contextlib.closing(sqlite3.connect('file:' + str(path) + '?mode=ro', uri=True, timeout=2)))
+                db.execute('PRAGMA query_only=ON'); db.execute('PRAGMA trusted_schema=OFF')
+                db.set_progress_handler(lambda: int(time.monotonic() >= deadline), 1000)
+                db.execute('BEGIN')
+                if db.execute('PRAGMA quick_check').fetchall() != [('ok',)]:
+                    return False
+                databases.append(db)
+            schemas = [db.execute("SELECT name,sql FROM sqlite_master WHERE type='table' AND name NOT GLOB 'sqlite_*' ORDER BY name").fetchall() for db in databases]
+            required = {'administrators', 'admin_sessions', 'quick_tokens', 'weroxy_devices', 'legacy_devices', 'config_revisions'}
+            if any(not required <= {name for name, _ in rows} for rows in schemas):
+                return False
+            retained = [[row for row in rows if row[0] not in ROLLBACK_OBSERVATIONS] for rows in schemas]
+            if retained[0] != retained[1] or len(retained[0]) > 128:
+                return False
+            count = 0; missing = object()
+            for table, _ in retained[0]:
+                quoted = '"' + table.replace('"', '""') + '"'
+                if table == 'firewall_sync':
+                    if any(db.execute('SELECT enabled OR managed FROM firewall_sync').fetchone()[0] for db in databases):
+                        return False
+                columns = len(databases[0].execute('SELECT * FROM ' + quoted + ' LIMIT 0').description)
+                if not 0 < columns <= 128:
+                    return False
+                query = ('SELECT domain,desired_revision FROM config_revisions ORDER BY domain'
+                         if table == 'config_revisions' else 'SELECT * FROM ' + quoted + ' ORDER BY ' + ','.join(str(i + 1) for i in range(columns)))
+                cursors = [db.execute(query) for db in databases]
+                for a, b in itertools.zip_longest(*cursors, fillvalue=missing):
+                    count += 1
+                    if a != b or count > 100000 or time.monotonic() >= deadline:
+                        return False
+            return True
+    except (OSError, RuntimeError, sqlite3.Error, ValueError, TypeError, IndexError):
+        return False
+
+
+def quarantine_restore(path, preserve_credentials=False):
     # Same credential safety boundary as Server RestoreFile. Do not resurrect
     # sessions, tokens, or device access from an older database snapshot.
     dbfile = path / "weroxy.db"
@@ -144,10 +220,11 @@ def quarantine_restore(path):
         if result != [("ok",)]:
             raise RuntimeError("rollback database integrity failed")
         db.execute("UPDATE admin_sessions SET revoked=1")
-        db.execute("UPDATE quick_tokens SET revoked=1")
-        db.execute("UPDATE weroxy_devices SET revoked=1,paused=1")
-        db.execute("UPDATE legacy_devices SET paused=1")
-        if db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='firewall_sync'").fetchone():
+        if not preserve_credentials:
+            db.execute("UPDATE quick_tokens SET revoked=1")
+            db.execute("UPDATE weroxy_devices SET revoked=1,paused=1")
+            db.execute("UPDATE legacy_devices SET paused=1")
+        if not preserve_credentials and db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='firewall_sync'").fetchone():
             db.execute("UPDATE firewall_sync SET enabled=0,managed=0,status='revoked',failure_reason='' WHERE id=1")
         db.commit()
     for suffix in ("", "-wal", "-shm"):
@@ -189,23 +266,24 @@ def revoke_managed_firewall():
     if response.get("status")!="applied":raise RuntimeError("managed firewall revocation failed; rollback blocked")
 
 
-def rollback(saved):
+def rollback(saved, automatic=False):
     if os.geteuid() != 0 or not saved.get("rollback_available"):
         raise RuntimeError("root and an offline rollback snapshot required")
     old = saved["previous_image"]
     command(["docker", "image", "inspect", old], capture=True)
     compose("stop", "weroxy", image=saved["image"])
-    if not saved.get("rollback_prepared"):
-        revoke_managed_firewall()
     backup = ROOT / "rollback-data"
+    keep = bool(saved.get('rollback_preserves_credentials')) if saved.get('rollback_prepared') else automatic and security_state_unchanged(DATA, backup)
+    if not saved.get("rollback_prepared") and not keep:
+        revoke_managed_firewall()
     failed = pathlib.Path(saved.get("rollback_failed_data", str(ROOT / ("failed-data-" + str(time.time_ns())))))
     if not saved.get("rollback_prepared"):
         verify_data(backup)
-        quarantine_restore(backup)
+        quarantine_restore(backup, preserve_credentials=keep)
         marker = backup / ".rollback-prepared"
-        marker.write_text("credential quarantine complete\n")
+        marker.write_text("unchanged credentials verified for automatic rollback\n" if keep else "credential quarantine complete\n")
         marker.chmod(0o600)
-        saved = {**saved, "rollback_prepared": True, "rollback_failed_data": str(failed)}
+        saved = {**saved, "rollback_prepared": True, "rollback_failed_data": str(failed), "rollback_preserves_credentials": keep}
         save(saved)
     # Recorded intent permits resuming after either directory rename.
     if not failed.exists():
@@ -220,14 +298,17 @@ def rollback(saved):
     if not (DATA / ".rollback-prepared").is_file():
         raise RuntimeError("rollback snapshot marker missing")
     DATA.chmod(0o750)
-    prepare_publication(old)
+    prepare_publication(old, saved.get("previous_publication"))
     save({"image": old})
     if saved.get("previous_running", True):
         compose("up", "-d", "--no-build", "weroxy", image=old)
         ready(old)
     else:
         pause_tasks()
-    print("Rollback complete. Admin sessions are invalidated; devices require explicit recovery.")
+    if keep:
+        print("Automatic rollback complete. Unchanged device credentials retained; admin sessions invalidated.")
+    else:
+        print("Rollback complete. Admin sessions are invalidated; devices require explicit recovery.")
 
 
 def own_published_ports(image):
@@ -242,10 +323,26 @@ def own_published_ports(image):
         return set()
 
 
-def prepare_publication(image):
-    port_plan.check_firewall()
+def frozen_publication(info):
+    """Docker HostConfig is authoritative, including stopped containers."""
+    pairs = []; hosts = set()
+    for inside, bindings in (info.get('HostConfig',{}).get('PortBindings') or {}).items():
+        if not inside.endswith('/tcp') or len(bindings or []) != 1:
+            raise RuntimeError('Unsupported existing publication; no upgrade performed')
+        binding = bindings[0]
+        hosts.add(binding.get('HostIp') or '0.0.0.0')
+        pairs.append([int(binding['HostPort']),int(inside[:-4])])
+    if len(hosts)!=1 or not pairs:
+        raise RuntimeError('Cannot preserve existing publication; no upgrade performed')
+    return {'host_ip':hosts.pop(),'ports':sorted(pairs)}
+
+
+def prepare_publication(image, preserved=None):
+    if preserved is None:
+        port_plan.check_firewall()
     host = os.environ.get("WERXY_PUBLISH_IP", "0.0.0.0")
-    value = port_plan.plan(DATA / "weroxy.db", host, own_published_ports(image))
+    value = (port_plan.preserved_plan(DATA / "weroxy.db", preserved) if preserved is not None
+             else port_plan.plan(DATA / "weroxy.db", host, own_published_ports(image)))
     port_plan.write_plan(value, DATA, PUBLICATION)
     return value
 
@@ -469,6 +566,8 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("action", choices=["build", "init", "up", "stop", "backup", "status", "refresh", "watch", "upgrade", "rollback"])
     parser.add_argument("--image")
+    parser.add_argument("--preserve-publication", action="store_true", help=argparse.SUPPRESS)
+    parser.add_argument("--automatic-upgrade-rollback", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--lock-fd", type=int, help=argparse.SUPPRESS)
     parser.add_argument("--forward-pool", default="29000-29099")
     parser.add_argument("--data-pool", default="29100-29199")
@@ -553,6 +652,9 @@ def main(argv=None):
             previous_info = json.loads(command(["docker", "inspect", cid], capture=True))[0]
             previous = previous_info["Image"]
             was_running = bool(previous_info.get("State", {}).get("Running"))
+            frozen = frozen_publication(previous_info) if args.preserve_publication else None
+            if frozen is not None:
+                port_plan.preserved_plan(DATA / "weroxy.db", frozen)
             if target == previous:
                 raise RuntimeError("target is the current image")
             image = target
@@ -582,18 +684,18 @@ def main(argv=None):
                 if was_running:
                     compose("up", "-d", "--no-build", "weroxy", image=saved["image"])
                 raise
-            save({"image": image, "previous_image": saved["image"], "previous_running": was_running, "rollback_available": True})
+            save({"image": image, "previous_image": saved["image"], "previous_running": was_running, "rollback_available": True, "previous_publication": frozen})
             opened = []
             replacement_started = False
             try:
                 retire_old_https()
-                publication = prepare_publication(image)
+                publication = prepare_publication(image, frozen)
                 services = ("weroxy",)
                 replacement_started = True
                 compose("up", "-d", "--no-build", *services, image=image)
                 ready(image)
                 print("Verify host port publication and ingress", flush=True)
-                opened = port_plan.open_firewall(publication)
+                opened = [] if frozen is not None else port_plan.open_firewall(publication)
                 port_plan.verify_ingress(publication, DATA)
                 install_publication_timer()
 
@@ -613,10 +715,10 @@ def main(argv=None):
                     print("upgrade preflight failed; original image and unchanged data restored", file=sys.stderr)
                 else:
                     print("upgrade failed; restoring old image and quarantined offline data", file=sys.stderr)
-                    rollback(state())
+                    rollback(state(), automatic=True)
                 raise
         elif args.action == "rollback":
-            rollback(saved)
+            rollback(saved, automatic=args.automatic_upgrade_rollback)
 
 
 if __name__ == "__main__":

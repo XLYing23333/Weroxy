@@ -153,7 +153,7 @@ The manager rejects occupied entry ports and skips occupied pool ports, updating
 
 ## Upgrade and recovery
 
-Upgrade Server and Client together: 0.5.0 uses Weroxy v2 with embedded Noise and rejects old plaintext Weroxy connections without fallback. Control is encrypted throughout; Data is encrypted only during binding, then carries the original business stream. SSH retains its own encryption and host-key verification. Legacy remains plain 4900 and Web remains HTTP; no TLS, certificates or additional client is required.
+Versions 0.4.0 and 0.5.0 share Weroxy v2 and can interoperate. Upgrade both endpoints together when migrating from the old plaintext Weroxy protocol; there is no plaintext fallback. Control is encrypted throughout; Data is encrypted only during binding, then carries the original business stream. SSH retains its own encryption and host-key verification. Legacy remains plain 4900 and Web remains HTTP; no TLS, certificates or additional client is required.
 
 Stop the service and privately back up the complete `deploy/data` directory and deployment configuration before upgrading. A SQLite-only backup does not contain all credential-encryption secrets. Do not run first installation against an existing database. See [deployment upgrade and recovery](WeroxyServer/deploy/docker/README.md#升级与恢复) for the underlying migration workflow. Retain previous packages for recovery.
 
@@ -183,15 +183,16 @@ profile
 start/restart
 stop
 status
-开机自启 → enable / disable
+autostart → enable / disable
 doctor
-主机加固
+host hardening
+Update
 uninstall
 ```
 
 **profile** asks only for Host, Port and Key, with visible input. Port defaults to **29999 (Control)**; press Enter to accept. Blank input keeps existing values; Esc cancels without saving. Configure internal targets and bans in Server Web; no certificate or local allow list is required.
 
-Profiles use `~/.config/weroxy_client/client.conf` (directory 0700, configuration/key 0600). Running the menu through sudo uses the invoking user's profile. After saving, **start/restart** synchronizes it with the service and starts or restarts the Client. Installation and saving do not enable autostart. **开机自启 → enable / disable** changes only autostart. **status** shows system, service, boot state, actual control connection and traffic; **doctor** diagnoses connectivity.
+Profiles use `~/.config/weroxy_client/client.conf` (directory 0700, configuration/key 0600). Running the menu through sudo uses the invoking user's profile. After saving, **start/restart** synchronizes it with the service and starts or restarts the Client. Installation and saving do not enable autostart. **autostart → enable / disable** changes only autostart. **status** shows system, service, boot state, actual control connection and traffic; **doctor** diagnoses connectivity.
 
 TUI **uninstall** stops the service, disables autostart, deletes the current user's and service profiles, then removes the native package; other users' profiles remain. Direct package removal retains configuration. See the [Client guide](WeroxyClient/deploy/INSTALL.md).
 
@@ -211,7 +212,7 @@ Run `go test ./...` separately in Server and Client. In `WeroxyServer/web`, run 
 - Noise protects the full Control connection and the Data binding handshake. After READY, business bytes retain their original protocol; SSH retains its own encryption and host-key verification.
 - Configuration remains Host, Port and Key. No TLS, certificates or additional client is required. Upgrade both components together; there is no fallback to the old plaintext Weroxy protocol.
 - Web remains HTTP. Plaintext business protocols remain plaintext. Password hashing and encrypted credentials at rest do not protect network traffic.
-- The TUI **主机加固** entry provides inspection, installation/configuration, dry-run and rollback, with displayed defaults accepted by Enter. The optional login protection is implemented with fail2ban; the service manager is systemd. Write operations were verified in isolated Debian 12/systemd. Writes require explicit confirmation; SSH changes require a second session to confirm, with timed rollback otherwise.
+- The TUI **host hardening** entry provides inspection, installation/configuration, dry-run and rollback, with displayed defaults accepted by Enter. The optional login protection is implemented with fail2ban; the service manager is systemd. Write operations were verified in isolated Debian 12/systemd. Writes require explicit confirmation; SSH changes require a second session to confirm, with timed rollback otherwise.
 - Visitor totals and active connections are separate. Cumulative totals survive normal restarts independently of recent-detail retention. An abnormal exit may lose the latest unpersisted updates.
 
 ## Credentials and source publication
@@ -288,3 +289,29 @@ or SSH/fail2ban hardening. Report actual evidence and unverified items accuratel
 Choose **Update** in the Server or Client terminal manager to check the latest stable GitHub release. Confirm to download, verify SHA-256 and upgrade with a rollback backup. Connections restart during installation. Server Web Settings shows version reminders and a Release link; it does not install updates. Internet access to GitHub over HTTPS is needed only for checking and downloading updates.
 
 For an existing 0.4.0 installation, install 0.5.0 using the verified release package first; the new Update menu is available starting with 0.5.0. Server updates retain data and port mappings. Keep `.update-previous` and `deploy/rollback-data` until the upgrade has been verified; archive these backups before the next Server update.
+
+For the first Server upgrade from 0.4.0, download and verify the 0.5.0 archive using the steps above, then use the existing deployment directory below. Replace `/opt/weroxy` if you installed elsewhere. This stops only Weroxy, makes a complete private backup, overlays release files without deleting data, and invokes the existing offline upgrade/rollback engine:
+
+```sh
+set -eu
+existing=/opt/weroxy
+pkg=/absolute/path/to/weroxy-server_0.5.0_linux_amd64.release.tar.gz
+# Set pkg to the absolute path of the already verified archive.
+sudo test ! -e "${existing}-before-0.5.0"
+sudo "$existing/manage" stop
+sudo cp -a "$existing" "${existing}-before-0.5.0"
+sudo tar -xzf "$pkg" -C "$existing"
+sudo python3 - "$existing" <<'PYUPDATE'
+import pathlib, sys
+package = pathlib.Path(sys.argv[1]).resolve()
+sys.path.insert(0, str(package / "deploy"))
+import console
+build = console.verify(package)
+image = console.load_image(package, build)
+console.invoke("upgrade", "--image", image, "--preserve-publication")
+PYUPDATE
+```
+
+Keep the complete `-before-0.5.0` backup until validation succeeds. If the container upgrade fails, the engine restores its previous image/data state; retain the manager backup as well. Restore that complete directory only while Weroxy is stopped. For Client 0.4.0, use the verified native 0.5.0 package and retain the previous package for recovery. Subsequent updates use **Update**.
+
+Automatic failed-upgrade rollback keeps device credentials only when an offline comparison proves that credential and security configuration is unchanged. Otherwise it retains credential quarantine and requires explicit device recovery. A data rollback invalidates administrator sessions in either case.

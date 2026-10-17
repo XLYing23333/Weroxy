@@ -71,3 +71,21 @@ class OptionalFirewallTest(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class PreservedPublicationTest(unittest.TestCase):
+    def test_custom_entries_and_excluded_pool_ports_are_retained_without_scanning(self):
+        publication={'host_ip':'127.0.0.1','ports':[[14900,4900],[19999,29999],[19415,9415],[40000,40000],[40100,40100]]}
+        with patch('port_plan.configured_pool',return_value=(40000,40002,40100,40102,'0.0.0.0')),patch('port_plan.host_port_free') as probe:
+            result=port_plan.preserved_plan(pathlib.Path('unused'),publication)
+        probe.assert_not_called()
+        self.assertEqual(set(result['ports']),{tuple(p) for p in publication['ports']})
+        self.assertEqual(result['host_ip'],'127.0.0.1')
+        self.assertEqual(result['unavailable_forward'],[40001,40002])
+        self.assertEqual(result['unavailable_data'],[40101,40102])
+
+    def test_ambiguous_or_out_of_pool_bindings_are_rejected(self):
+        base=[[14900,4900],[19999,29999],[19415,9415]]
+        for extra in [[[14900,40000]],[[50000,50000]],[[40000,40001]],[[40000]]]:
+            with self.subTest(extra=extra),patch('port_plan.configured_pool',return_value=(40000,40002,40100,40102,'0.0.0.0')):
+                with self.assertRaises(RuntimeError):port_plan.preserved_plan(pathlib.Path('unused'),{'host_ip':'127.0.0.1','ports':base+extra})

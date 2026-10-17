@@ -1,5 +1,6 @@
 """Bounded host-side publication plan for the Docker deployment manager."""
 import datetime
+import ipaddress
 import json
 import os
 import pathlib
@@ -53,6 +54,34 @@ def plan(dbfile, host, own_ports=()):
             "forward_first":first,"forward_last":last,"data_first":data_first,"data_last":data_last,
             "unavailable_forward":unavailable_forward,"unavailable_data":unavailable_data,
             "ports":published}
+
+
+def preserved_plan(dbfile, publication):
+    """Use verified prior Docker bindings exactly; never rescan into new ports."""
+    first,last,data_first,data_last,_ = configured_pool(dbfile)
+    host = publication['host_ip']
+    if not isinstance(host,str):
+        raise RuntimeError('Invalid preserved host')
+    ipaddress.ip_address(host)
+    pairs = publication['ports']
+    if not isinstance(pairs,list) or not 3 <= len(pairs) <= 2051:
+        raise RuntimeError('Invalid preserved publication')
+    if any(not isinstance(pair,(list,tuple)) or len(pair)!=2 for pair in pairs):
+        raise RuntimeError('Invalid preserved port pair')
+    pairs = [tuple(pair) for pair in pairs]
+    if any(len(pair)!=2 or any(type(p)!=int or not 1<=p<=65535 for p in pair) for pair in pairs):
+        raise RuntimeError('Invalid preserved port')
+    entries = {4900,29999,9415}
+    if len({p[0] for p in pairs})!=len(pairs) or len({p[1] for p in pairs})!=len(pairs) or not entries <= {p[1] for p in pairs}:
+        raise RuntimeError('Ambiguous preserved publication')
+    for outside,inside in pairs:
+        if inside not in entries and (outside!=inside or not (first<=inside<=last or data_first<=inside<=data_last)):
+            raise RuntimeError('Stored pool differs from preserved publication')
+    return {'checked_at':datetime.datetime.now(datetime.timezone.utc).isoformat(), 'host_ip':host,
+            'forward_first':first,'forward_last':last,'data_first':data_first,'data_last':data_last,
+            'unavailable_forward':[p for p in range(first,last+1) if (p,p) not in pairs],
+            'unavailable_data':[p for p in range(data_first,data_last+1) if (p,p) not in pairs],
+            'ports':pairs}
 
 
 def write_plan(value, data_dir, compose_file):

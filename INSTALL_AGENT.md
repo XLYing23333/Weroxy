@@ -17,7 +17,7 @@ unrelated production services.
 - Fetch assets and SHA256SUMS from the same v0.5.0 release. Verify the selected
   file with sha256sum before extraction or package installation. Checksums detect
   corruption; they are not an independent publisher signature.
-- Both endpoints must use protocol Major 2. Upgrade the pair together; do not
+- Both endpoints must use protocol Major 2. 0.4.0 and 0.5.0 interoperate. Upgrade the pair together when migrating from plaintext versions; do not
   automatically fall back to plaintext Control or rotate existing Keys silently.
 
 ## Server
@@ -54,7 +54,7 @@ Open `weroxy-client` in an interactive terminal and configure only Host, Port an
 Key through profile. Default Control port is 29999. For automation use the existing
 stdin-based configuration interface; never put Key in argv or a Git-tracked file.
 Targets/forwards are configured in Server Web. Start via start/restart; confirm
-`weroxy-client version`, status and doctor. SSH/fail2ban changes in the 主机加固 menu and 开机自启 →
+`weroxy-client version`, status and doctor. SSH/fail2ban changes in the host hardening menu and autostart →
 Enable are separate choices, not required for basic tunnel installation.
 
 ## Verification and reporting / 验证与报告
@@ -69,3 +69,5 @@ Enable are separate choices, not required for basic tunnel installation.
   publish tokens/passwords/keys, or include private backups in Git or a Release.
 
 For updates from 0.5.0 onward, use the terminal manager's Update action, verify the selected stable release and platform, and obtain operator confirmation before restarting connections. Prepare rollback packages/data before installation; do not change device keys, port mappings, host SSH or unrelated services. Web version reminders do not perform an upgrade. Existing 0.4.0 managers lack this action; use the verified 0.5.0 release package for the first upgrade.
+
+Automatic rollback may retain unchanged device credentials only after the built-in offline security-state comparison succeeds. If credentials or security policies changed, or the comparison cannot establish safety, preserve quarantine and request explicit recovery; never silently re-enable a revoked credential. Data rollback invalidates administrator sessions.
