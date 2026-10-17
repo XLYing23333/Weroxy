@@ -892,7 +892,7 @@ async function saveEdit(){if(!editValid.value||actionBusy.value||previewBusy.val
           <el-tag :class="row.protocol === 'weroxy' ? 'tag-weroxy' : 'tag-legacy'">{{ row.protocol === "weroxy" ? "Weroxy" : "Legacy" }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="sessions" :label="t('sessions')" min-width="150" sortable="custom">
+      <el-table-column prop="sessions" :label="t('sessions')" min-width="170" sortable="custom">
         <template #default="{ row }"><span :class="sessionClass(row.sessions)">{{ row.sessions }}</span></template>
       </el-table-column>
       <el-table-column :label="t('up')" prop="up" min-width="105" sortable="custom">
@@ -1072,7 +1072,7 @@ async function saveEdit(){if(!editValid.value||actionBusy.value||previewBusy.val
               </el-tooltip>
             </template>
           </el-table-column>
-          <el-table-column v-if="selected.protocol === 'weroxy'" :label="t('deviceReachability')" min-width="130">
+          <el-table-column v-if="selected.protocol === 'weroxy'" :label="t('deviceReachability')" min-width="170">
             <template #default="{ row }">
               <el-tooltip :content="row.device_reachability === 'reachable' ? t('reachabilityVerified') : row.device_reachability === 'unreachable' ? t('deviceDataUnreachable') : t('reachabilityUnknown')" placement="top" popper-class="forward-detail-tooltip">
                 <el-tag size="small" :type="row.device_reachability === 'reachable' ? 'success' : row.device_reachability === 'unreachable' ? 'danger' : 'warning'">{{ row.device_reachability === 'reachable' ? t('verifiedShort') : row.device_reachability === 'unreachable' ? t('failedShort') : t('unknownShort') }}</el-tag>
