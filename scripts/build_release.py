@@ -62,7 +62,22 @@ def main():
         run(go,'build','-trimpath','-buildvcs=false','-ldflags',f'-s -w -X weroxy/server/internal/buildinfo.Version={version}',
             '-o',str(stage/'weroxy-Server'),'./cmd/weroxy-Server',cwd=ROOT/'WeroxyServer',env=env)
         shutil.copyfile(ROOT/'WeroxyServer/THIRD_PARTY_NOTICES',stage/'THIRD_PARTY_NOTICES')
-        (stage/'Dockerfile').write_text('FROM golang:1.27.1-bookworm AS trust\nFROM scratch\nCOPY --from=trust /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt\nCOPY weroxy-Server /weroxy-Server\nCOPY THIRD_PARTY_NOTICES /THIRD_PARTY_NOTICES\nUSER 10001:10001\nENTRYPOINT ["/weroxy-Server"]\nCMD ["run"]\n')
+        # Public Mozilla roots only: exclude local/custom CA certificates.
+        ca_files = sorted(Path('/usr/share/ca-certificates/mozilla').glob('*.crt'))
+        if not ca_files:
+            raise SystemExit('Install the system ca-certificates package before building')
+        import ssl
+        trust = bytearray()
+        for certificate in ca_files:
+            if certificate.is_symlink():
+                raise SystemExit('Mozilla root certificates must be ordinary files')
+            body = certificate.read_text()
+            ssl.PEM_cert_to_DER_cert(body)
+            trust.extend(body.encode())
+            if not body.endswith('\n'):
+                trust.extend(b'\n')
+        (stage/'ca-certificates.crt').write_bytes(trust)
+        (stage/'Dockerfile').write_text('FROM scratch\nCOPY ca-certificates.crt /etc/ssl/certs/ca-certificates.crt\nCOPY weroxy-Server /weroxy-Server\nCOPY THIRD_PARTY_NOTICES /THIRD_PARTY_NOTICES\nUSER 10001:10001\nENTRYPOINT ["/weroxy-Server"]\nCMD ["run"]\n')
         image='weroxy-server:'+version
         run('docker','build','--platform=linux/amd64','-t',image,str(stage))
         info=json.loads(run('docker','image','inspect',image,capture=True))[0]
@@ -70,7 +85,7 @@ def main():
                    architecture='linux/amd64',image_config_digest=info['Id'],image_manifest_digest=info['Id'],
                    go_version=run(go,'version',capture=True),node_version=run('node','--version',capture=True),
                    built_at=datetime.datetime.now(datetime.timezone.utc).isoformat(),remote_deployed=False,
-                   source_manifest_sha256=sha(output/'SOURCE_SHA256SUMS'),binary_sha256=sha(stage/'weroxy-Server'))
+                   source_manifest_sha256=sha(output/'SOURCE_SHA256SUMS'),binary_sha256=sha(stage/'weroxy-Server'), ca_bundle_sha256=sha(stage/'ca-certificates.crt'), ca_root_count=len(ca_files), ca_source='system Mozilla public roots')
         write_json(stage/'BUILD.json',build)
         run(sys.executable,'WeroxyServer/deploy/package.py','--image',image,'--output',str(stage/'server'),
             '--runtime-build',str(stage/'BUILD.json'),'--runtime-source-manifest',str(output/'SOURCE_SHA256SUMS'))
