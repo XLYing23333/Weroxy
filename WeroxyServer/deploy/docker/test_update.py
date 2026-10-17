@@ -81,4 +81,19 @@ class UpdateTest(unittest.TestCase):
                 self.assertEqual((root/'manage.py').read_text(),'new manager' if rollback_fails else 'old manager')
                 self.assertEqual((package/'.update-previous').exists(),rollback_fails)
 
+    def test_metadata_time_budget_and_archive_entry_budget(self):
+        response=types.SimpleNamespace()
+        class Opened:
+            def __enter__(self):return response
+            def __exit__(self,*args):return False
+        opener=types.SimpleNamespace(open=lambda *a,**kw:Opened())
+        with patch('update.urllib.request.build_opener',return_value=opener),patch('update.time.monotonic',side_effect=[0,11]):
+            with self.assertRaisesRegex(RuntimeError,'time budget'):update.read(update.API,1024)
+        with tempfile.TemporaryDirectory() as work:
+            root=pathlib.Path(work);source=root/'many.tar.gz';target=root/'out';target.mkdir()
+            with tarfile.open(source,'w:gz') as archive:
+                for i in range(101):archive.addfile(tarfile.TarInfo(str(i)))
+            with self.assertRaisesRegex(RuntimeError,'budget'):update.extract(source,target)
+            self.assertEqual(list(target.iterdir()),[])
+
 if __name__=='__main__':unittest.main()

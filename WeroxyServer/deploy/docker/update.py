@@ -37,16 +37,19 @@ class Redirect(urllib.request.HTTPRedirectHandler):
 def read(url, limit, output=None, timeout=10, cancel=None):
     request = urllib.request.Request(url, headers={'User-Agent': 'Weroxy-update'})
     started = time.monotonic()
+    budget = 10 if output is None else 600
     with urllib.request.build_opener(Redirect()).open(request, timeout=timeout) as response:
         chunks = []; size = 0; digest = hashlib.sha256()
         while True:
+            if time.monotonic() - started >= budget:
+                raise RuntimeError('Release request exceeds time budget')
             if cancel is not None and cancel.is_set():
                 raise RuntimeError("Update cancelled before installation")
-            block = response.read(65536)
+            block = response.read1(65536)
             if not block:
                 break
             size += len(block)
-            if size > limit or time.monotonic() - started > 600:
+            if size > limit or time.monotonic() - started >= budget:
                 raise RuntimeError('Release download exceeds budget')
             digest.update(block)
             if output is None:
@@ -104,9 +107,12 @@ def download(release, target, cancel=None):
 
 def extract(source, target):
     with tarfile.open(source, 'r:gz') as archive:
-        members = archive.getmembers()
-        if len(members) > 100 or sum(m.size for m in members) > 2 * 1024 ** 3:
-            raise RuntimeError('Expanded release exceeds budget')
+        members = []; expanded = 0
+        for member in archive:
+            expanded += member.size
+            if len(members) >= 100 or expanded > 2 * 1024 ** 3:
+                raise RuntimeError('Expanded release exceeds budget')
+            members.append(member)
         names = set()
         for member in members:
             parts = pathlib.PurePosixPath(member.name)
