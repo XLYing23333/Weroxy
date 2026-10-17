@@ -58,4 +58,27 @@ class UpdateTest(unittest.TestCase):
             self.assertFalse((package/'new-only').exists())
             self.assertFalse((package/'.update-previous').exists())
 
+    def test_post_install_version_failure_rolls_back_and_preserves_recovery_on_failure(self):
+        for rollback_fails in [False,True]:
+            with self.subTest(rollback_fails=rollback_fails),tempfile.TemporaryDirectory() as work:
+                package=pathlib.Path(work);root=package/'deploy';root.mkdir()
+                (root/'manage.py').write_text('old manager')
+                def extract(source,stage):
+                    (stage/'deploy').mkdir();(stage/'deploy/manage.py').write_text('new manager')
+                actions=[]
+                def invoke(action,*args):
+                    actions.append(action)
+                    if action=='rollback' and rollback_fails:raise RuntimeError('simulated rollback failure')
+                core=types.SimpleNamespace(compose=lambda *a,**kw:'cid',command=lambda *a,**kw:'weroxy-Server 0.0.0\n')
+                console=types.SimpleNamespace(PACKAGE=package,ROOT=root,core=core,
+                    prerequisites=lambda **kwargs:None,secure_release_permissions=lambda:None,
+                    verify=lambda stage:{'version':'0.5.0'},load_image=lambda *a:'sha256:new',
+                    critical_operation=contextlib.nullcontext,lifecycle_lock=contextlib.nullcontext,invoke=invoke)
+                with patch('update.download'),patch('update.extract',side_effect=extract):
+                    with self.assertRaisesRegex(RuntimeError,'rollback failed' if rollback_fails else 'version check failed'):
+                        update.apply(console,{'tag_name':'v0.5.0'})
+                self.assertEqual(actions,['upgrade','rollback'])
+                self.assertEqual((root/'manage.py').read_text(),'new manager' if rollback_fails else 'old manager')
+                self.assertEqual((package/'.update-previous').exists(),rollback_fails)
+
 if __name__=='__main__':unittest.main()

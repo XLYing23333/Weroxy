@@ -156,6 +156,7 @@ def apply(console, release, args=None):
             files = [p.relative_to(stage) for p in stage.rglob('*') if p.is_file()]
             previous.mkdir(mode=0o700)
             absent = []
+            upgraded = False
             try:
                 for relative in files:
                     dest = console.PACKAGE / relative
@@ -172,8 +173,19 @@ def apply(console, release, args=None):
                         pending.chmod(0o755 if relative.as_posix() == 'manage' else 0o644)
                         pending.replace(dest)
                     console.invoke('upgrade', '--image', image)
+                    upgraded = True
+                    cid = console.core.compose('ps', '-q', 'weroxy', image=image, capture=True, timeout=10).strip()
+                    reported = console.core.command(['docker', 'exec', cid, '/weroxy-Server', 'version'], capture=True, timeout=10)
+                    if reported.splitlines()[:1] != ['weroxy-Server ' + build['version']]:
+                        raise RuntimeError('Post-update Server version check failed')
                     print('Server updated to ' + build['version'] + '. Reopen manage to use the new manager.')
             except BaseException:
+                if upgraded:
+                    try:
+                        with console.critical_operation(), console.lifecycle_lock():
+                            console.invoke('rollback')
+                    except BaseException as error:
+                        raise RuntimeError('Post-update verification failed and rollback failed; retain .update-previous and rollback-data for recovery') from error
                 for relative in files:
                     old = previous / relative
                     if old.is_file():
