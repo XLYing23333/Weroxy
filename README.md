@@ -35,7 +35,25 @@ A lightweight TCP tunnel with a Go Server and Client, SQLite, and an embedded Vu
 
 ### Contents
 
-[Packages](#packages) · [Server installation](#server-installation) · [Client installation](#client-installation) · [Build & verify](#build-and-verify) · [Documentation](#documentation) · [Acknowledgements](#acknowledgements)
+[Screenshots](#screenshots) · [Packages](#packages) · [Server installation](#server-installation) · [Client installation](#client-installation) · [Build & verify](#build-and-verify) · [Documentation](#documentation) · [Acknowledgements](#acknowledgements)
+
+## Screenshots
+
+### Dashboard · Dark
+
+![Weroxy dashboard in English with the dark theme](assets/dashboard.jpg)
+
+### Dashboard · Light
+
+![Weroxy dashboard in English with the light theme](assets/dashboard-light.jpg)
+
+### Device configuration
+
+![Weroxy device configuration in English](assets/config.jpg)
+
+### Settings
+
+![Weroxy settings in English](assets/setting.jpg)
 
 ## Packages
 

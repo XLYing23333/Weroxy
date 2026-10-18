@@ -35,7 +35,25 @@
 
 ### 目录
 
-[安装包](#安装包) · [Server 安装](#server-安装) · [Client 安装](#client-安装与使用) · [构建与测试](#源码构建与测试) · [文档导航](#文档导航) · [致谢](#致谢)
+[界面预览](#界面预览) · [安装包](#安装包) · [Server 安装](#server-安装) · [Client 安装](#client-安装与使用) · [构建与测试](#源码构建与测试) · [文档导航](#文档导航) · [致谢](#致谢)
+
+## 界面预览
+
+### 总览 · 深色
+
+![Weroxy 中文深色主题总览](assets/dashboard-cn.jpg)
+
+### 总览 · 浅色
+
+![Weroxy 中文浅色主题总览](assets/dashboard-light-cn.jpg)
+
+### 设备配置
+
+![Weroxy 中文设备配置页面](assets/config-cn.jpg)
+
+### 设置
+
+![Weroxy 中文设置页面](assets/setting-cn.jpg)
 
 ## 安装包
 
