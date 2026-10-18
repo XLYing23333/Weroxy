@@ -1424,3 +1424,5 @@ html.dark .page {
   line-height: 1.4;
   white-space: nowrap;
 }
+
+.update-card .release-link { text-decoration: none; }

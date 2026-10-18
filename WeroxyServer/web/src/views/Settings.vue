@@ -207,7 +207,7 @@ onUnmounted(() => {passwordRequest?.abort();current.value="";next.value="";again
         <p v-if="updateInfo?.latest_version">{{ t("latestVersion") }}: {{ updateInfo.latest_version }}</p>
         <p role="status">{{ updateBusy ? t('checkingUpdate') : updateInfo?.status === 'error' ? t('updateUnavailable') : updateInfo?.available ? t('updateAvailable') : updateInfo?.status === 'ok' ? t(updateInfo.latest_version !== updateInfo.current_version ? 'newerThanRelease' : 'upToDate') : '—' }}</p>
         <p v-if="updateInfo?.checked_at" class="reason">{{ t('lastChecked') }}: {{ new Date(updateInfo.checked_at).toLocaleString() }}</p>
-        <div class="inline-row"><el-button :loading="updateBusy" @click="checkUpdate(true)">{{ t('checkUpdate') }}</el-button><a v-if="updateInfo?.release_url" :href="updateInfo.release_url" target="_blank" rel="noopener noreferrer">{{ t('viewRelease') }}</a></div>
+        <div class="inline-row"><el-button :loading="updateBusy" @click="checkUpdate(true)">{{ t('checkUpdate') }}</el-button><el-button v-if="updateInfo?.release_url" tag="a" :href="updateInfo.release_url" target="_blank" rel="noopener noreferrer" class="release-link">{{ t('viewRelease') }}</el-button></div>
       </section>
       <section class="form-block">
         <h3>{{ t("forwardDefaults") }}</h3>
