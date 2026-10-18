@@ -86,9 +86,9 @@ function draw() {
     traffic.value.setOption({
       backgroundColor: "transparent",
       color: ["#8b5a2b", "#c4a574"],
-      textStyle: { color },
+      textStyle: { color, fontFamily: "Comic Neue CN, sans-serif" },
       tooltip: byteTip(),
-      legend: { textStyle: { color }, top: 0 },
+      legend: { textStyle: { color, fontFamily: "Comic Neue CN, sans-serif" }, top: 0 },
       grid: { left: 72, right: 28, top: 48, bottom: 40 },
       xAxis: { type: "category", data: series.map((point) => formatClock(point.at, true)), ...axis() },
       yAxis: { type: "value", ...byteAxis() },
@@ -108,9 +108,9 @@ function draw() {
   deviceChart.value.setOption({
     backgroundColor: "transparent",
     color: palette,
-    textStyle: { color },
+    textStyle: { color, fontFamily: "Comic Neue CN, sans-serif" },
     tooltip: byteTip(),
-    legend: { textStyle: { color }, top: 0, type: "scroll" },
+    legend: { textStyle: { color, fontFamily: "Comic Neue CN, sans-serif" }, top: 0, type: "scroll" },
     grid: { left: 72, right: 28, top: 48, bottom: 40 },
     xAxis: { type: "category", data: rows.map((item: StatusDevice) => item.name), ...axis() },
     yAxis: { type: "value", ...byteAxis() },

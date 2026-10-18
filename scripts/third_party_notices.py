@@ -187,6 +187,10 @@ def render(data, component):
         chunks.append('\n'+'='*72+'\nDOCUMENT '+key+'\n'+ '\n'.join(owners)+'\n'+'-'*72+'\n'+text)
         if not text.endswith('\n'):
             chunks.append('\n')
+    if component == 'WeroxyServer':
+        chunks.append('\nComic Neue CN Web fonts — SIL Open Font License 1.1\n')
+        for name in ('fonts-comic-neue-LICENSE.txt', 'fonts-noto-cjk-LICENSE.txt'):
+            chunks.append('\n' + name + '\n' + (ROOT/'WeroxyServer/web/public/fonts'/name).read_text().rstrip('\n') + '\n')
     return ''.join(chunks).encode()
 
 

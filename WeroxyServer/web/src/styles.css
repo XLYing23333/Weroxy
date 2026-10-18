@@ -1,3 +1,19 @@
+@font-face {
+  font-family: "Comic Neue CN";
+  src: url("/fonts/ComicNeueCN-Regular.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 100 500;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Comic Neue CN";
+  src: url("/fonts/ComicNeueCN-Bold.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 600 900;
+  font-display: swap;
+}
+
 :root {
   --beagle-chocolate: #4a2c1a;
   --beagle-caramel: #8b5a2b;
@@ -33,7 +49,8 @@
   --el-border-radius-small: 6px;
   --el-border-radius-round: 20px;
   color-scheme: light;
-  font-family: "Segoe UI", "PingFang SC", "Noto Sans SC", sans-serif;
+  --el-font-family: "Comic Neue CN", sans-serif;
+  font-family: var(--el-font-family);
   background: var(--el-bg-color-page);
   color: var(--el-text-color-primary);
   accent-color: var(--el-color-primary);
@@ -77,6 +94,7 @@ button,
 input,
 textarea,
 select {
+  font-family: inherit;
   color: inherit;
   accent-color: var(--el-color-primary);
 }
@@ -1399,3 +1417,10 @@ html.dark .page {
 .device-state-cell .el-tag { margin:0 !important; flex:none; }
 .el-table { max-width:100%; }
 .update-card p { margin:8px 0; }
+
+/* Keep the copyright symbol and text on one consistent system-font baseline. */
+.side-foot .copyright {
+  font-family: Arial, "Helvetica Neue", sans-serif;
+  line-height: 1.4;
+  white-space: nowrap;
+}
