@@ -282,26 +282,6 @@ See [inventory and upstream text gaps](legal/README.md). Check it offline with
 `python3 scripts/third_party_notices.py --check`; builds/packages reject stale dependency inventories.
 
 
-## Installation prompt for an Agent
-
-Copy the prompt below and fill in the host and component. Configure Host, Port and Key through the Client TUI afterward.
-
-```text
-Install Weroxy v0.5.0 from https://github.com/XLYing23333/Weroxy.
-Release: https://github.com/XLYing23333/Weroxy/releases/tag/v0.5.0.
-Target host: [SSH host or local]; component: [Server / Client].
-Read README.md and INSTALL_AGENT.md first. Inspect OS, architecture, existing Weroxy,
-occupied ports and other production services. Download matching release assets and verify
-SHA256SUMS from the same version. Use the amd64 Server archive/manage or a native Client package.
-Back up existing data privately; do not run first-install on an existing deployment.
-Do not delete other apps, modify host SSH/fail2ban, prune Docker globally or alter shared
-firewall settings. If manage's automatic UFW integration conflicts with these limits,
-show the exact port plan and effects, and obtain explicit authorization before running it.
-Never put keys, passwords or initialization URLs in argv, logs, reports or Git.
-Check versions, service status and doctor. Obtain separate authorization for autostart
-or SSH/fail2ban hardening. Report actual evidence and unverified items accurately.
-```
-
 ### Updates
 
 Choose **Update** in the Server or Client terminal manager to check the latest stable GitHub release. Confirm to download, verify SHA-256 and upgrade with a rollback backup. Connections restart during installation. Server Web Settings shows version reminders and a Release link; it does not install updates. Internet access to GitHub over HTTPS is needed only for checking and downloading updates.

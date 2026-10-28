@@ -245,7 +245,7 @@ Legacy 可选互操作测试需要仓库外的 JRE 8、Java 发行包及忽略�
 
 ## 协议与兼容性
 
-Legacy 与 Weroxy 协议入口分离，不将动态数据端口协议用于旧 Client。用户指定 Java lanproxyCli 的现网身份与完整互操作证据仍不足，不宣称已验证兼容。不要直接替换其他 Lanproxy 部署。
+Legacy 与 Weroxy 协议入口分离，不将动态数据端口协议用于旧 Client。Java lanproxyCli 的现网身份与完整互操作证据仍不足，不宣称已验证兼容。不要直接替换其他 Lanproxy 部署。
 
 ## 文档导航
 
@@ -282,25 +282,6 @@ BSD/MIT 的再分发条款及 Apache 声明要求分发时保留相应版权和�
 必要原文仍随 [Server](WeroxyServer/THIRD_PARTY_NOTICES) 和 [Client](WeroxyClient/THIRD_PARTY_NOTICES) 分发。详见[依赖清单及上游文本缺项](legal/README.md)。
 可执行 `python3 scripts/third_party_notices.py --check` 离线检查；依赖变更导致声明过期时，构建/打包会拒绝继续。
 
-
-## 给 Agent 的安装提示词
-
-复制下段并补充目标机器与组件；Host、Port、Key 可在安装后通过 TUI 配置。
-
-```text
-请为目标主机安装 Weroxy v0.5.0，项目 https://github.com/XLYing23333/Weroxy，
-发布页 https://github.com/XLYing23333/Weroxy/releases/tag/v0.5.0。
-目标主机：[填写 SSH 主机或本机]；组件：[Server / Client]。
-先阅读仓库 README-CN.md 和 INSTALL_AGENT.md，检测操作系统、架构、已安装 Weroxy、
-占用端口及其他生产服务。下载对应 Release 资产并校验同一版本 SHA256SUMS。
-Server 使用 amd64 发布包和 manage；Client 使用本机架构的 deb（或对应 RPM/pacman）。
-如已有数据，先私密备份，不执行首次安装、不覆盖旧数据。不得删除其他应用、修改宿主机
-SSH/fail2ban、全局清理 Docker 或直接改动共享防火墙。Server manage 的自动 UFW 集成
-如与此限制冲突，先给出端口规划和具体影响，待用户明确授权后再执行。
-设备 Key、管理员密码和初始化 URL 不得放进命令参数、日志、报告或 Git。
-配置成功后检查版本、服务状态和 doctor；自启及 SSH/fail2ban 加固单独取得授权。
-报告真实结果和未验证项，不把本地 echo 测试当作真实跨节点验收。
-```
 
 ### 更新
 
