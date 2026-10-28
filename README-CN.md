@@ -24,6 +24,8 @@
 
 轻量 TCP 内网穿透：Go Server、Go Client、SQLite 和嵌入式 Vue 管理页面。Web 只有总览、设备配置与转发、设置三个一级页面，支持中英文及三种主题。控制连接与数据握手内嵌 Noise，握手完成后业务流沿用原协议；每条 Weroxy 会话使用独立 TCP 数据连接；共享、独占与自动扩缩数据端口不会自动增加物理带宽。
 
+Web 管理页面使用 HTTP；业务数据是否加密取决于其自身协议。
+
 ## 项目特性
 
 | | 能力 |
@@ -171,8 +173,6 @@ sudo env LC_ALL=C.UTF-8 LANG=C.UTF-8 /opt/weroxy/manage
 
 ## 升级与备份
 
-0.4.0 与 0.5.0 均使用 Weroxy v2，可以互通。从旧明文 Weroxy 协议迁移时两端须配套升级，不自动降级。Control 全程加密，Data 仅握手加密，业务内容沿用原协议；SSH 自身负责内容加密及主机验证。Legacy 只保留普通 4900，Web 仍为 HTTP；不需要 TLS、证书或额外客户端。
-
 升级前停止服务并私密备份完整 `deploy/data` 与管理配置。完整备份包含设备密钥的加密主秘密；只备份 SQLite 文件不足以恢复全部凭据。不要在已有数据上再次执行首次安装；底层升级与恢复流程见 [Docker 部署文档](WeroxyServer/deploy/docker/README.md#升级与恢复)。旧版本安装包可留作回退。
 
 忘记密码时选择“Reset password”，输入原用户名与两次新密码，或执行 `sudo /opt/weroxy/manage reset-password --username YOUR_USERNAME`。用户名不变，新密码至少 6 字节。
@@ -218,7 +218,7 @@ TUI **uninstall** 会停止、取消自启、删除当前用户与服务 Profile
 
 ## 源码构建与测试
 
-Go 版本以两个 `go.mod` 为准；前端构建需要 Node.js 22/npm，运行不需要 Node、JRE 或外部数据库。
+Go 版本以两个 `go.mod` 为准；前端构建需要 Node.js 22/npm。
 
 ```sh
 VERSION=0.5.0 GO_BIN=/path/to/go WeroxyServer/deploy/build.sh
@@ -228,14 +228,6 @@ docker build -f WeroxyServer/DockerFile --build-arg VERSION=0.5.0 -t weroxy-serv
 ```
 
 Server 与 Client 分别在各自模块运行 `go test ./...`；Web 运行 `npm run typecheck`、`node --experimental-strip-types --test test/display.test.mjs`、`npm run build`；部署脚本测试为 `python3 -m unittest discover -s WeroxyServer/deploy/docker -p 'test_*.py'`。
-
-## 0.5.0 传输与加固
-
-- Control 全程使用 Noise，Data 仅在绑定握手阶段加密。READY 后不再增加业务加密层；SSH 沿用自身加密及主机密钥验证。
-- 配置仍为 Host、Port、Key，不需要 TLS、证书或额外客户端。0.4.0 与 0.5.0 可以互通；从旧明文 Weroxy 协议迁移时，两端须配套升级，不自动降级。
-- Web 仍为 HTTP，普通明文业务不会因此获得加密。密码哈希和数据库密钥加密不代替网络传输保护。
-- TUI 的 **主机加固** 提供只读检测、安装配置、dry-run 和回滚入口，显示默认参数并允许 Enter 接受。登录防护由 fail2ban 实现，系统服务由 systemd 管理。仅 Linux Debian 12/systemd 的写入流程经过隔离验收；实际写入前须明确确认，SSH 配置须通过第二会话确认，未确认时定时回滚。
-- 设备访客显示累计连接与当前活动连接数；累计统计独立于近期明细并在正常重启后恢复。异常退出可能丢失最近未持久化的数据，不保证崩溃时零损失。
 
 ## 凭据与源码发布
 
@@ -267,50 +259,3 @@ Legacy 与 Weroxy 协议入口分离，不将动态数据端口协议用于旧 C
 <p align="center">
   <a href="README.md">English</a> · <a href="#项目特性">返回顶部</a>
 </p>
-
-## 第三方许可
-
-第三方声明已嵌入两端可执行文件，可离线执行 `weroxy-client notices` 或 `weroxy-Server notices`
-（Docker：`docker exec <容器名> /weroxy-Server notices`）查看。
-Web 和 TUI 使用功能名称，不展示依赖工具品牌或声明入口；需要时可显式执行 `./manage notices` 查看。
-Client 原生安装包将声明安装到 `/usr/share/doc/weroxy-client/THIRD_PARTY_NOTICES`；
-Server 发布包随安装器附带声明，镜像中位于 `/THIRD_PARTY_NOTICES`。
-
-声明清单覆盖全部已声明的直接/间接 Go 模块，以及 Web npm 锁文件中的所有包（含构建工具、平台可选包），
-各 APP 按自身依赖范围嵌入。实现依赖包括 Noise、SQLite、Vue、Element Plus、ECharts；主机助手使用 fail2ban，部署管理使用 Docker/Compose。
-BSD/MIT 的再分发条款及 Apache 声明要求分发时保留相应版权和许可文本，因此只删除根目录重复汇总文件；
-必要原文仍随 [Server](WeroxyServer/THIRD_PARTY_NOTICES) 和 [Client](WeroxyClient/THIRD_PARTY_NOTICES) 分发。详见[依赖清单及上游文本缺项](legal/README.md)。
-可执行 `python3 scripts/third_party_notices.py --check` 离线检查；依赖变更导致声明过期时，构建/打包会拒绝继续。
-
-
-### 更新
-
-在 Server 或 Client 终端管理菜单选择 **Update**，检查 GitHub 最新稳定版本；确认后下载、校验 SHA-256，并使用回滚备份升级。安装期间连接会重建。Server Web 设置仅提供版本提醒及发布链接，不执行安装。检查和下载更新需要通过 HTTPS 访问 GitHub。
-
-现有 0.4.0 安装需先通过校验后的发布包升级到 0.5.0，之后即可使用新增的 Update 菜单。Server 升级保留数据及端口映射；验收前保留 `.update-previous` 和 `deploy/rollback-data`，下次升级前先归档这两份备份。
-
-首次从 0.4.0 升级 Server 时，先按前文下载并校验 0.5.0 压缩包，再针对已有部署目录执行下面的步骤；安装路径不同时请替换 `/opt/weroxy`。此流程仅停止 Weroxy，私密备份完整目录，覆盖发布文件而不删除数据，再调用已有的离线升级及回滚引擎：
-
-```sh
-set -eu
-existing=/opt/weroxy
-pkg=/absolute/path/to/weroxy-server_0.5.0_linux_amd64.release.tar.gz
-# Set pkg to the absolute path of the already verified archive.
-sudo test ! -e "${existing}-before-0.5.0"
-sudo "$existing/manage" stop
-sudo cp -a "$existing" "${existing}-before-0.5.0"
-sudo tar -xzf "$pkg" -C "$existing"
-sudo python3 - "$existing" <<'PYUPDATE'
-import pathlib, sys
-package = pathlib.Path(sys.argv[1]).resolve()
-sys.path.insert(0, str(package / "deploy"))
-import console
-build = console.verify(package)
-image = console.load_image(package, build)
-console.invoke("upgrade", "--image", image, "--preserve-publication")
-PYUPDATE
-```
-
-其中 `pkg` 必须是已校验 Server 压缩包的绝对路径。验收前保留完整的 `-before-0.5.0` 备份；容器升级失败时引擎恢复旧镜像及数据状态，管理文件备份也须保留。恢复完整目录前必须停止 Weroxy。Client 0.4.0 使用已校验的 0.5.0 原生包升级并保留旧包；后续使用 **Update**。
-
-自动升级失败回滚仅在离线比对证明凭据和安全配置未变化时保留设备凭据；否则继续隔离凭据，要求明确恢复设备。两种数据回滚均会使管理员会话失效。

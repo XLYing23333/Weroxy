@@ -24,6 +24,8 @@
 
 A lightweight TCP tunnel with a Go Server and Client, SQLite, and an embedded Vue dashboard. The three management pages are Dashboard, Devices/Forwards, and Settings, with Chinese/English and System/Light/Dark themes. Each Weroxy session has its own TCP data connection; shared and exclusive data ports support automatic expansion and draining. Multiple ports do not increase physical bandwidth.
 
+The Web management page uses HTTP; business traffic is protected only if its own protocol provides encryption.
+
 ## Features
 
 | | What you get |
@@ -171,8 +173,6 @@ The manager rejects occupied entry ports and skips occupied pool ports, updating
 
 ## Upgrade and recovery
 
-Versions 0.4.0 and 0.5.0 share Weroxy v2 and can interoperate. Upgrade both endpoints together when migrating from the old plaintext Weroxy protocol; there is no plaintext fallback. Control is encrypted throughout; Data is encrypted only during binding, then carries the original business stream. SSH retains its own encryption and host-key verification. Legacy remains plain 4900 and Web remains HTTP; no TLS, certificates or additional client is required.
-
 Stop the service and privately back up the complete `deploy/data` directory and deployment configuration before upgrading. A SQLite-only backup does not contain all credential-encryption secrets. Do not run first installation against an existing database. See [deployment upgrade and recovery](WeroxyServer/deploy/docker/README.md#升级与恢复) for the underlying migration workflow. Retain previous packages for recovery.
 
 For a forgotten password, choose Reset password or run `sudo /opt/weroxy/manage reset-password --username YOUR_USERNAME`. Enter and confirm a password of at least 6 bytes; the username is unchanged.
@@ -216,7 +216,7 @@ TUI **uninstall** stops the service, disables autostart, deletes the current use
 
 ## Build and verify
 
-Use the Go version pinned in each module and Node.js 22/npm for Web builds. Runtime requires no Node.js, JRE or external database.
+Use the Go version pinned in each module and Node.js 22/npm for Web builds.
 
 ```sh
 VERSION=0.5.0 GO_BIN=/path/to/go WeroxyServer/deploy/build.sh
@@ -224,14 +224,6 @@ docker build -f WeroxyServer/DockerFile --build-arg VERSION=0.5.0 -t weroxy-serv
 ```
 
 Run `go test ./...` separately in Server and Client. In `WeroxyServer/web`, run `npm run typecheck`, `node --experimental-strip-types --test test/display.test.mjs`, and `npm run build`. Deployment tests: `python3 -m unittest discover -s WeroxyServer/deploy/docker -p 'test_*.py'`.
-
-## 0.5.0 transport and hardening
-
-- Noise protects the full Control connection and the Data binding handshake. After READY, business bytes retain their original protocol; SSH retains its own encryption and host-key verification.
-- Configuration remains Host, Port and Key. No TLS, certificates or additional client is required. Upgrade both components together; there is no fallback to the old plaintext Weroxy protocol.
-- Web remains HTTP. Plaintext business protocols remain plaintext. Password hashing and encrypted credentials at rest do not protect network traffic.
-- The TUI **host hardening** entry provides inspection, installation/configuration, dry-run and rollback, with displayed defaults accepted by Enter. The optional login protection is implemented with fail2ban; the service manager is systemd. Write operations were verified in isolated Debian 12/systemd. Writes require explicit confirmation; SSH changes require a second session to confirm, with timed rollback otherwise.
-- Visitor totals and active connections are separate. Cumulative totals survive normal restarts independently of recent-detail retention. An abnormal exit may lose the latest unpersisted updates.
 
 ## Credentials and source publication
 
@@ -241,7 +233,7 @@ Optional Legacy interoperability tests require local JRE 8, Java distribution fi
 
 ## Protocol and compatibility
 
-Legacy and Weroxy have separate entrances and codecs. The user-specified Java lanproxyCli has insufficient real-client compatibility evidence; do not assume compatibility or replace another Lanproxy deployment.
+Legacy and Weroxy have separate entrances and codecs. The Java lanproxyCli has insufficient real-client compatibility evidence; do not assume compatibility or replace another Lanproxy deployment.
 
 ## Documentation
 
@@ -263,53 +255,3 @@ Thank you to these open-source projects and their contributors:
 <p align="center">
   <a href="README-CN.md">简体中文</a> · <a href="#features">Back to top</a>
 </p>
-
-## Third-party licenses
-
-Third-party notices are embedded in both executables and can be read offline with
-`weroxy-client notices` or `weroxy-Server notices` (Docker: `docker exec <container> /weroxy-Server notices`).
-The normal Web and terminal menus use functional labels and do not display library/tool branding.
-The explicit installer CLI `./manage notices` also prints the distribution notices.
-Native Client packages install the text under `/usr/share/doc/weroxy-client/THIRD_PARTY_NOTICES`;
-Server releases include the text alongside the installer and at `/THIRD_PARTY_NOTICES` in the image.
-
-The notice inventory covers all declared direct/indirect Go modules and every Web npm lock entry,
-including build tools and optional platform packages. Each app embeds its own dependency scope.
-Dependencies include Noise, SQLite, Vue, Element Plus and ECharts. The host helper uses fail2ban and the deployment manager uses Docker/Compose.
-BSD/MIT redistribution terms and Apache notices require retaining upstream copyright/license texts in distributed software.
-The redundant combined root notice is omitted; required scoped texts remain in [Server](WeroxyServer/THIRD_PARTY_NOTICES) and [Client](WeroxyClient/THIRD_PARTY_NOTICES).
-See [inventory and upstream text gaps](legal/README.md). Check it offline with
-`python3 scripts/third_party_notices.py --check`; builds/packages reject stale dependency inventories.
-
-
-### Updates
-
-Choose **Update** in the Server or Client terminal manager to check the latest stable GitHub release. Confirm to download, verify SHA-256 and upgrade with a rollback backup. Connections restart during installation. Server Web Settings shows version reminders and a Release link; it does not install updates. Internet access to GitHub over HTTPS is needed only for checking and downloading updates.
-
-For an existing 0.4.0 installation, install 0.5.0 using the verified release package first; the new Update menu is available starting with 0.5.0. Server updates retain data and port mappings. Keep `.update-previous` and `deploy/rollback-data` until the upgrade has been verified; archive these backups before the next Server update.
-
-For the first Server upgrade from 0.4.0, download and verify the 0.5.0 archive using the steps above, then use the existing deployment directory below. Replace `/opt/weroxy` if you installed elsewhere. This stops only Weroxy, makes a complete private backup, overlays release files without deleting data, and invokes the existing offline upgrade/rollback engine:
-
-```sh
-set -eu
-existing=/opt/weroxy
-pkg=/absolute/path/to/weroxy-server_0.5.0_linux_amd64.release.tar.gz
-# Set pkg to the absolute path of the already verified archive.
-sudo test ! -e "${existing}-before-0.5.0"
-sudo "$existing/manage" stop
-sudo cp -a "$existing" "${existing}-before-0.5.0"
-sudo tar -xzf "$pkg" -C "$existing"
-sudo python3 - "$existing" <<'PYUPDATE'
-import pathlib, sys
-package = pathlib.Path(sys.argv[1]).resolve()
-sys.path.insert(0, str(package / "deploy"))
-import console
-build = console.verify(package)
-image = console.load_image(package, build)
-console.invoke("upgrade", "--image", image, "--preserve-publication")
-PYUPDATE
-```
-
-Keep the complete `-before-0.5.0` backup until validation succeeds. If the container upgrade fails, the engine restores its previous image/data state; retain the manager backup as well. Restore that complete directory only while Weroxy is stopped. For Client 0.4.0, use the verified native 0.5.0 package and retain the previous package for recovery. Subsequent updates use **Update**.
-
-Automatic failed-upgrade rollback keeps device credentials only when an offline comparison proves that credential and security configuration is unchanged. Otherwise it retains credential quarantine and requires explicit device recovery. A data rollback invalidates administrator sessions in either case.
