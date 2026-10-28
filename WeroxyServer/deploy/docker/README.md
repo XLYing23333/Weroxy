@@ -41,7 +41,7 @@ sudo python3 /opt/weroxy/deploy/manage.py upgrade --image weroxy-server:0.5.0
 
 upgrade 使用已导入并核实的新镜像，升级前完整离线备份；失败恢复旧镜像与任务，数据回滚遵守凭据隔离规则。不要将上述底层镜像升级命令当作自动替换发布包脚本的命令；旧 0.2.0 部署需先备份并使用新发布包中的匹配管理文件。0.4.0 与 0.5.0 均为 Noise v2，可互通；旧明文或 TLS Weroxy 版本需两端配套迁移。Legacy 仅保留普通 4900。
 
-旧 HTTPS 集成只根据固定部署路径及旧归属凭据清理；只处理本部署旧 Caddy 容器、定时任务及专用域名配置。旧证书保存至 `deploy/backups/retired-https-*` 的受限备份，不继续用于运行。其他 Nginx 站点、服务及共享防火墙规则不改。独立旧实现归档在 development，未进入发布包。
+旧 HTTPS 集成只根据固定部署路径及旧归属凭据清理；只处理本部署旧 Caddy 容器、定时任务及专用域名配置。旧证书保存至 `deploy/backups/retired-https-*` 的受限备份，不继续用于运行。其他 Nginx 站点、服务及共享防火墙规则不改。
 
 ## 重置密码
 
