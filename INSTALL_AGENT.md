@@ -1,8 +1,8 @@
 # Installing Weroxy with an Agent / Agent 安装约定
 
 Project: https://github.com/XLYing23333/Weroxy
-Release: https://github.com/XLYing23333/Weroxy/releases/tag/v0.5.0
-Assets: https://github.com/XLYing23333/Weroxy/releases/download/v0.5.0/
+Release: https://github.com/XLYing23333/Weroxy/releases/tag/v0.5.1
+Assets: https://github.com/XLYing23333/Weroxy/releases/download/v0.5.1/
 
 Read README.md or README-CN.md for commands and prerequisites. This file describes
 installation; it does not authorize touching an unspecified host or changing
@@ -14,15 +14,14 @@ unrelated production services.
   Linux amd64. Client: amd64/arm64 deb, x86_64/aarch64 RPM, x86_64 pacman.
 - Inspect existing Weroxy services, containers, data and occupied ports. Record
   other production services before acting. Never expose credentials in the report.
-- Fetch assets and SHA256SUMS from the same v0.5.0 release. Verify the selected
+- Fetch assets and SHA256SUMS from the same v0.5.1 release. Verify the selected
   file with sha256sum before extraction or package installation. Checksums detect
   corruption; they are not an independent publisher signature.
-- Both endpoints must use protocol Major 2. 0.4.0 and 0.5.0 interoperate. Upgrade the pair together when migrating from plaintext versions; do not
-  automatically fall back to plaintext Control or rotate existing Keys silently.
+- For a new deployment, use the server and client packages from the same release.
 
 ## Server
 
-Use `weroxy-server_0.5.0_linux_amd64.release.tar.gz`. It includes an offline Docker
+Use `weroxy-server_0.5.1_linux_amd64.release.tar.gz`. It includes an offline Docker
 image, the `manage` entry point, deployment code, notices, and provenance.
 Extract into a fresh root-owned `/opt/weroxy` directory, then run `sudo ./manage`.
 Do not extract over a live deployment. Existing installations need private data
@@ -46,7 +45,7 @@ credentials across an untrusted management network.
 
 Prefer the native package for the host. The Client tar.gz is a deb bundle, not an
 alternative service installer; extract and install its matching deb. Debian/Ubuntu:
-`sudo apt install ./weroxy-client_0.5.0_<architecture>.deb`.
+`sudo apt install ./weroxy-client_0.5.1_<architecture>.deb`.
 RPM uses dnf/yum; pacman uses `pacman -U`. Never run package installation scripts
 separately. Do not overwrite another user's profile or enable autostart implicitly.
 
@@ -68,6 +67,6 @@ Enable are separate choices, not required for basic tunnel installation.
 - Never prune Docker globally, reboot the host, delete unrelated applications,
   publish tokens/passwords/keys, or include private backups in Git or a Release.
 
-For updates from 0.5.0 onward, use the terminal manager's Update action, verify the selected stable release and platform, and obtain operator confirmation before restarting connections. Prepare rollback packages/data before installation; do not change device keys, port mappings, host SSH or unrelated services. Web version reminders do not perform an upgrade. Existing 0.4.0 managers lack this action; use the verified 0.5.0 release package for the first upgrade.
+Use the terminal manager's Update action. Back up deployment data and keep the previous packages available for rollback.
 
 Automatic rollback may retain unchanged device credentials only after the built-in offline security-state comparison succeeds. If credentials or security policies changed, or the comparison cannot establish safety, preserve quarantine and request explicit recovery; never silently re-enable a revoked credential. Data rollback invalidates administrator sessions.

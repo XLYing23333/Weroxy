@@ -3,7 +3,7 @@ set -eu
 # Build-time Node/npm only; the executable embeds the generated local Web.
 server_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 go_bin=${GO_BIN:-go}
-version=${VERSION:-0.4.0}
+version=${VERSION:-0.5.1}
 python3 "$server_dir/../scripts/third_party_notices.py" --check
 output=${1:-"$server_dir/../dist/server/weroxy-Server"}
 case "$output" in /*) ;; *) output="$PWD/$output" ;; esac

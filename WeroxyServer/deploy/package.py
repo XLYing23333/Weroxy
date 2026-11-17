@@ -21,8 +21,8 @@ def run(*args):
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--image',default='weroxy-server:0.5.0')
-    parser.add_argument('--output',default=str(REPO/'dist/server/0.5.0'))
+    parser.add_argument('--image',default='weroxy-server:0.5.1')
+    parser.add_argument('--output',default=str(REPO/'dist/server/0.5.1'))
     parser.add_argument('--runtime-build',required=True,help='metadata for the already-built image')
     parser.add_argument('--runtime-source-manifest',required=True)
     args=parser.parse_args()
@@ -39,8 +39,19 @@ def main():
             source=REPO/relative
             if relative=='THIRD_PARTY_NOTICES':source=REPO/'WeroxyServer/THIRD_PARTY_NOTICES'
             elif relative=='manage':source=REPO/'WeroxyServer/deploy/docker/manage'
+            elif relative == 'assets/BarLOGO.png':
+                source = REPO / 'assets/LOGO-BAR.png'
             elif relative.startswith('deploy/'):source=REPO/'WeroxyServer/deploy/docker'/relative.removeprefix('deploy/')
-            target=stage/relative;target.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(source,target)
+            target = stage / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source, target)
+            if relative in {'README.md', 'README-CN.md'}:
+                # Existing release verifiers require the banner at the archive path.
+                readme = target.read_text(encoding='utf-8')
+                target.write_text(
+                    readme.replace('src="assets/LOGO-BAR.png"', 'src="assets/BarLOGO.png"'),
+                    encoding='utf-8',
+                )
         (stage/'manage').chmod(0o755)
         archive=name+'.docker.tar'
         subprocess.run(['docker','save','-o',str(stage/archive),args.image],check=True)
